@@ -8,6 +8,9 @@
 	let user = null;
 	let loading = true;
 
+	let apps = [];
+
+
 	// Local SVG asset paths (served from public/)
 	const svgDjango = '/assets/django.svg';
 	const svgDotnet = '/assets/dotnet.svg';
@@ -48,10 +51,23 @@
 		}
 	}
 
+	async function fetchApps() {
+		try {
+			const res = await fetch('/api/apps');
+			if (res.ok) {
+				const json = await res.json();
+				apps = json.apps || [];
+			}
+		} catch (e) {
+			console.warn('Failed to fetch apps', e && e.message ? e.message : e);
+		}
+	}
+
 
 	// no runtime fetching required — assets live under public/assets
 
 	fetchUser();
+	fetchApps();
 
 	// Update time every second
 	setInterval(() => {
@@ -63,6 +79,11 @@
 	}
 	function logout() {
 		window.location.href = '/auth/logout';
+	}
+
+	function openApp(url) {
+		// navigate in the same tab to the app
+		window.location.href = url;
 	}
 </script>
 
@@ -76,13 +97,13 @@
 				<p>Loading authentication...</p>
 			{:else}
 				{#if user}
-					<button on:click={logout} style="margin-top:1rem">Logout</button>
+					<button class="auth-button" on:click={logout}>Logout</button>
 					<div class="claims-box">
 						<h2>User Claims</h2>
 						<pre>{@html syntaxHighlight(user)}</pre>
 					</div>
 				{:else}
-					<button on:click={login} style="margin-top:1rem">Login with SSO</button>
+					<button class="auth-button" on:click={login}>Login with SSO</button>
 				{/if}
 			{/if}
 		</div>
@@ -90,41 +111,23 @@
 
 	<div class="container">
 		<div class="dashboard-grid">
-			<div class="card">
-				<div class="card-icon"><img src="{svgDjango}" alt="Django logo" /></div>
-				<h3>Django App</h3>
-				<p>Open the Django application</p>
-				<a class="link-button" href="http://localhost:8000" target="_blank" rel="noopener noreferrer">Open Django</a>
-			</div>
-
-			<div class="card">
-				<div class="card-icon"><img src="{svgDotnet}" alt="Dotnet logo" /></div>
-				<h3>.NET 8</h3>
-				<p>Open the .NET 8 application</p>
-				<a class="link-button" href="http://localhost:5000" target="_blank" rel="noopener noreferrer">Open .NET App</a>
-			</div>
-
-			<div class="card">
-				<div class="card-icon"><img src="{svgPhp}" alt="PHP logo" /></div>
-				<h3>PHP</h3>
-				<p>Open the PHP application</p>
-				<a class="link-button" href="http://localhost:8080" target="_blank" rel="noopener noreferrer">Open PHP</a>
-			</div>
-		</div>
-		
-		<div class="status-bar">
-			<div class="status-item">
-				<span class="status-label">Portal Status:</span>
-				<span class="status-value online">Online</span>
-			</div>
-			<div class="status-item">
-				<span class="status-label">Current Time:</span>
-				<span class="status-value">{currentTime}</span>
-			</div>
+			{#if apps.length === 0}
+				<div>Loading services...</div>
+			{:else}
+				{#each apps as app}
+					<div class="card" key={app.id}>
+						<div class="card-icon">
+							<img src={app.id === 'django' ? svgDjango : app.id === 'dotnet' ? svgDotnet : svgPhp} alt={app.name} />
+						</div>
+						<h3>{app.name}</h3>
+						<p>Open the {app.name} — listening at <strong class="status-value">{app.url}</strong></p>
+						<button class="link-button" on:click={() => openApp(app.url)}>Open {app.name}</button>
+					</div>
+					{/each}
+			{/if}
 		</div>
 	</div>
 </main>
-
 <style>
 	main {
 		padding: 0;
@@ -255,6 +258,32 @@
 		transform: translateY(-1px);
 	}
 
+	/* prominent orange auth buttons for Login / Logout */
+	.auth-button {
+		display: inline-block;
+		margin-top: 1rem;
+		padding: 0.75rem 1.5rem;
+		background: linear-gradient(90deg, #ff8a00, #ff5722);
+		border: none;
+		color: white;
+		border-radius: 10px;
+		font-weight: 700;
+		cursor: pointer;
+		box-shadow: 0 8px 24px rgba(255, 138, 0, 0.18);
+		transition: transform 0.12s ease, box-shadow 0.12s ease, filter 0.12s ease;
+	}
+
+	.auth-button:hover {
+		transform: translateY(-2px);
+		filter: brightness(1.02);
+		box-shadow: 0 12px 36px rgba(255, 87, 34, 0.22);
+	}
+
+	.auth-button:focus {
+		outline: 3px solid rgba(255, 138, 0, 0.18);
+		outline-offset: 2px;
+	}
+
 	/* make anchor links look like buttons inside cards and remain contained */
 	.card .link-button {
 		display: block;
@@ -345,6 +374,7 @@
 			align-items: flex-start;
 		}
 	}
+
 	.claims-box {
 		background: #e3f2fd;
 		color: #0d47a1;

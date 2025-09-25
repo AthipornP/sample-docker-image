@@ -174,6 +174,16 @@ app.get('/api/user', (req, res) => {
   }
 });
 
+// API endpoint to return configured app URLs
+app.get('/api/apps', (req, res) => {
+  const apps = [
+    { id: 'django', name: 'Django App', url: process.env.APP_DJANGO_URL || 'http://localhost:8000' },
+    { id: 'dotnet', name: '.NET 8', url: process.env.APP_DOTNET_URL || 'http://localhost:5000' },
+    { id: 'php', name: 'PHP', url: process.env.APP_PHP_URL || 'http://localhost:8080' },
+  ];
+  res.json({ apps });
+});
+
 // Start server
 app.listen(port, () => {
   console.log(`Svelte portal running on http://localhost:${port}`);
