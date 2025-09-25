@@ -10,6 +10,8 @@ from django.shortcuts import redirect
 from django.contrib.auth import login as auth_login, get_user_model
 from django.urls import reverse
 import requests
+import json
+import html
 
 
 def _base64url_encode(data: bytes) -> str:
@@ -134,10 +136,35 @@ def private_view(request):
     <style>
     body{font-family:Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial; padding:32px; background:#f6f8fa}
     .card{background:#fff;padding:24px;border-radius:10px;box-shadow:0 8px 24px rgba(15,23,42,0.06);max-width:900px;margin:12px auto}
-    .btn{display:inline-block;padding:10px 16px;background:#ff7a18;color:#fff;border-radius:8px;text-decoration:none;font-weight:700}
+    .btn{display:inline-block;padding:10px 16px;color:#fff;border-radius:8px;text-decoration:none;font-weight:700}
+    .btn-orange{background:#ff7a18}
+    .btn-blue{background:#1976d2}
     pre{background:#0f1724;color:#e6edf3;padding:12px;border-radius:8px;overflow:auto}
     </style>
     """
 
-    body = f"{style}<div class=\"card\"><h1>Protected page</h1><p>You successfully authenticated via SSO.</p><h3>User claims</h3><pre>{info}</pre><p><a class=\"btn\" href=\"/logout\">Logout</a> <a style=\"margin-left:12px;\" href=\"/\">Home</a></p></div>"
+    # Render the user claims as a JSON code block (escaped for HTML safety)
+    try:
+        pretty = json.dumps(info, indent=2, ensure_ascii=False)
+    except Exception:
+        pretty = str(info)
+    escaped = html.escape(pretty)
+
+    json_html = f"""
+    <pre style=\"background:#0f1724;color:#e6edf3;padding:12px;border-radius:8px;overflow:auto\"><code>{escaped}</code></pre>
+    """
+
+    # also show access token in a separate code block
+    tokens = request.session.get('oidc_tokens', {}) or {}
+    access_token = tokens.get('access_token')
+    if access_token:
+        access_escaped = html.escape(access_token)
+        access_html = f"""
+        <h3>Access token</h3>
+        <pre style=\"background:#071226;color:#dbeefd;padding:12px;border-radius:8px;overflow:auto;word-break:break-all\"><code>{access_escaped}</code></pre>
+        """
+    else:
+        access_html = "<p class=\"muted\">No access token present in session.</p>"
+
+    body = f"{style}<div class=\"card\"><h1>Protected page</h1><p>You successfully authenticated via SSO.</p><h3>User claims</h3>{json_html}{access_html}<p><a class=\"btn btn-orange\" href=\"/logout\">Logout</a> <a class=\"btn btn-blue\" style=\"margin-left:12px;\" href=\"/\">Home</a></p></div>"
     return HttpResponse(body)
