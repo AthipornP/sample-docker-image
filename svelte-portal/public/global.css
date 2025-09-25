@@ -1,0 +1,73 @@
+html, body {
+	position: relative;
+	width: 100%;
+	height: 100%;
+}
+
+body {
+	color: #1e3a8a;
+	margin: 0;
+	padding: 0;
+	box-sizing: border-box;
+	font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+	background: linear-gradient(135deg, #e0f2fe 0%, #b3e5fc 50%, #81d4fa 100%);
+	min-height: 100vh;
+}
+
+a {
+	color: #1565c0;
+	text-decoration: none;
+}
+
+a:hover {
+	text-decoration: underline;
+	color: #0d47a1;
+}
+
+a:visited {
+	color: #1976d2;
+}
+
+label {
+	display: block;
+}
+
+input, button, select, textarea {
+	font-family: inherit;
+	font-size: inherit;
+	-webkit-padding: 0.4em 0;
+	padding: 0.4em;
+	margin: 0 0 0.5em 0;
+	box-sizing: border-box;
+	border: 1px solid #ccc;
+	border-radius: 2px;
+}
+
+input:disabled {
+	color: #ccc;
+}
+
+button {
+	color: white;
+	background-color: #1976d2;
+	outline: none;
+	border-radius: 6px;
+	transition: background-color 0.2s;
+}
+
+button:hover {
+	background-color: #1565c0;
+}
+
+button:disabled {
+	color: #999;
+	background-color: #e3f2fd;
+}
+
+button:not(:disabled):active {
+	background-color: #0d47a1;
+}
+
+button:focus {
+	border-color: #1976d2;
+}
