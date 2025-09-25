@@ -9,3 +9,4 @@
 ## Development
 - ทดสอบใน docker
 - หลังแก้โค้ตเสร็จให้ build image ใหม่ทุกครั้ง
+- เมื่อต้องการทดสอบด้วย curl ให้ใช้ curl.exe
