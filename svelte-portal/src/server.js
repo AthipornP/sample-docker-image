@@ -168,7 +168,9 @@ app.get('/auth/logout', (req, res) => {
 // API endpoint to get user claims
 app.get('/api/user', (req, res) => {
   if (req.session && req.session.claims) {
-    res.json({ authenticated: true, claims: req.session.claims });
+    // include access token when present so the portal can display it (for debugging/dev)
+    const tokenSet = req.session.tokenSet || {};
+    res.json({ authenticated: true, claims: req.session.claims, access_token: tokenSet.access_token || null });
   } else {
     res.json({ authenticated: false });
   }

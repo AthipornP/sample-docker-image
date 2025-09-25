@@ -140,6 +140,8 @@ def private_view(request):
     .btn-orange{background:#ff7a18}
     .btn-blue{background:#1976d2}
     pre{background:#0f1724;color:#e6edf3;padding:12px;border-radius:8px;overflow:auto}
+    /* token-block: ensure long tokens wrap nicely (handles no-space long strings) */
+    .token-block pre{background:#071226;color:#dbeefd;padding:12px;border-radius:8px;overflow:auto;white-space:pre-wrap;word-break:break-word;word-wrap:break-word;overflow-wrap:anywhere}
     </style>
     """
 
@@ -161,7 +163,7 @@ def private_view(request):
         access_escaped = html.escape(access_token)
         access_html = f"""
         <h3>Access token</h3>
-        <pre style=\"background:#071226;color:#dbeefd;padding:12px;border-radius:8px;overflow:auto;word-break:break-all\"><code>{access_escaped}</code></pre>
+        <div class=\"token-block\"><pre><code>{access_escaped}</code></pre></div>
         """
     else:
         access_html = "<p class=\"muted\">No access token present in session.</p>"

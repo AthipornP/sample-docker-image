@@ -1,12 +1,13 @@
-
 <script>
 	import { onMount } from 'svelte';
 	import Navbar from './Navbar.svelte';
 	export let name;
+	import { marked } from 'marked';
 
 	let currentTime = new Date().toLocaleString();
 	let user = null;
 	let loading = true;
+	let accessToken = null;
 
 	let apps = [];
 
@@ -43,6 +44,7 @@
 			const data = await res.json();
 			if (data.authenticated) {
 				user = data.claims;
+				accessToken = data.access_token || null;
 			} else {
 				user = null;
 			}
@@ -102,9 +104,15 @@
 						<h2>User Claims</h2>
 						<pre>{@html syntaxHighlight(user)}</pre>
 					</div>
+					<div>
+						{#if accessToken}
+							<h3>Access token</h3>
+							<pre class="token-block"><code>{accessToken}</code></pre>
+						{/if}
+					</div>
 				{:else}
-					<button class="auth-button" on:click={login}>Login with SSO</button>
-				{/if}
+						<button class="auth-button" on:click={login}>Login with SSO</button>
+					{/if}
 			{/if}
 		</div>
 	</div>
@@ -128,6 +136,7 @@
 		</div>
 	</div>
 </main>
+
 <style>
 	main {
 		padding: 0;
@@ -139,7 +148,7 @@
 		background: linear-gradient(135deg, #0d47a1 0%, #1976d2 50%, #42a5f5 100%);
 		color: white;
 		padding: 4rem 2rem;
-		text-align: center;
+		text-align: left; /* เปลี่ยนจาก center เป็น left */
 		position: relative;
 		overflow: hidden;
 	}
@@ -163,6 +172,7 @@
 	.hero-content {
 		position: relative;
 		z-index: 1;
+		text-align: center; /* restored to center */
 	}
 	
 	.hero-content h1 {
@@ -170,18 +180,21 @@
 		margin-bottom: 1rem;
 		font-weight: 700;
 		text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+		text-align: center; /* restored to center */
 	}
 	
 	.hero-subtitle {
 		font-size: 1.5rem;
 		opacity: 0.9;
 		margin-bottom: 0;
+		text-align: center; /* restored to center */
 	}
 	
 	.container {
 		max-width: 1200px;
-		margin: 0 auto;
+		margin: 0 auto; /* center container horizontally */
 		padding: 3rem 1rem;
+		text-align: center; /* restored to center */
 	}
 	
 	.dashboard-grid {
@@ -230,7 +243,7 @@
 		color: #0d47a1;
 		margin-bottom: 1rem;
 		font-size: 1.5rem;
-		text-align: center;
+		text-align: center; /* restored to center */
 	}
 	
 	.card p {
@@ -238,7 +251,7 @@
 		/* allow content to grow and push button to bottom */
 		margin: 0 0 1rem 0;
 		line-height: 1.6;
-		text-align: center;
+		text-align: center; /* restored to center */
 	}
 	
 	.card button {
@@ -383,7 +396,7 @@
 		padding: 1.5rem 2rem;
 		max-width: 600px;
 		box-shadow: 0 2px 8px rgba(33, 150, 243, 0.08);
-		text-align: left;
+		text-align: center; /* restored to center */
 	}
 	.claims-box pre {
 		background: #fff;
@@ -392,6 +405,19 @@
 		padding: 1rem;
 		font-size: 1rem;
 		overflow-x: auto;
+		text-align: left; /* keep code block left-aligned for readability */
+	}
+
+	.token-block {
+		background:#071226;
+		color:#dbeefd;
+		padding:12px;
+		border-radius:8px;
+		overflow:auto;
+		white-space:pre-wrap; /* allow wrapping */
+		word-break:break-word;
+		/* ensure only the token block content is left-aligned */
+		text-align: left;
 	}
 
 
