@@ -1,13 +1,69 @@
+
 <script>
+	import { onMount } from 'svelte';
 	import Navbar from './Navbar.svelte';
 	export let name;
-	
+
 	let currentTime = new Date().toLocaleString();
-	
+	let user = null;
+	let loading = true;
+
+	// Local SVG asset paths (served from public/)
+	const svgDjango = '/assets/django.svg';
+	const svgDotnet = '/assets/dotnet.svg';
+	const svgPhp = '/assets/php.svg';
+
+	// helper to produce highlighted JSON where keys and values have different colors
+	function syntaxHighlight(json) {
+		if (typeof json !== 'string') json = JSON.stringify(json, null, 2);
+		json = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+		return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?)|(\b(true|false|null)\b)|(-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function (match) {
+			let cls = 'number';
+			if (/^\"/.test(match)) {
+				if (/:$/.test(match)) {
+					cls = 'key';
+				} else {
+					cls = 'string';
+				}
+			} else if (/true|false/.test(match)) {
+				cls = 'boolean';
+			} else if (/null/.test(match)) {
+				cls = 'null';
+			}
+			return '<span class="' + cls + '">' + match + '</span>';
+		});
+	}
+
+	async function fetchUser() {
+		try {
+			const res = await fetch('/api/user');
+			const data = await res.json();
+			if (data.authenticated) {
+				user = data.claims;
+			} else {
+				user = null;
+			}
+		} finally {
+			loading = false;
+		}
+	}
+
+
+	// no runtime fetching required — assets live under public/assets
+
+	fetchUser();
+
 	// Update time every second
 	setInterval(() => {
 		currentTime = new Date().toLocaleString();
 	}, 1000);
+
+	function login() {
+		window.location.href = '/auth/login';
+	}
+	function logout() {
+		window.location.href = '/auth/logout';
+	}
 </script>
 
 <main>
@@ -16,37 +72,43 @@
 		<div class="hero-content">
 			<h1>Welcome to Customer Portal</h1>
 			<p class="hero-subtitle">Your gateway to excellent customer service</p>
+			{#if loading}
+				<p>Loading authentication...</p>
+			{:else}
+				{#if user}
+					<button on:click={logout} style="margin-top:1rem">Logout</button>
+					<div class="claims-box">
+						<h2>User Claims</h2>
+						<pre>{@html syntaxHighlight(user)}</pre>
+					</div>
+				{:else}
+					<button on:click={login} style="margin-top:1rem">Login with SSO</button>
+				{/if}
+			{/if}
 		</div>
 	</div>
-	
+
 	<div class="container">
 		<div class="dashboard-grid">
 			<div class="card">
-				<div class="card-icon">📊</div>
-				<h3>Account Overview</h3>
-				<p>View your account details and current status</p>
-				<button>View Details</button>
+				<div class="card-icon"><img src="{svgDjango}" alt="Django logo" /></div>
+				<h3>Django App</h3>
+				<p>Open the Django application</p>
+				<a class="link-button" href="http://localhost:8000" target="_blank" rel="noopener noreferrer">Open Django</a>
 			</div>
-			
+
 			<div class="card">
-				<div class="card-icon">📋</div>
-				<h3>Service Requests</h3>
-				<p>Submit and track your service requests</p>
-				<button>Manage Requests</button>
+				<div class="card-icon"><img src="{svgDotnet}" alt="Dotnet logo" /></div>
+				<h3>.NET 8</h3>
+				<p>Open the .NET 8 application</p>
+				<a class="link-button" href="http://localhost:5000" target="_blank" rel="noopener noreferrer">Open .NET App</a>
 			</div>
-			
+
 			<div class="card">
-				<div class="card-icon">💳</div>
-				<h3>Billing & Payments</h3>
-				<p>View invoices and manage payment methods</p>
-				<button>View Billing</button>
-			</div>
-			
-			<div class="card">
-				<div class="card-icon">📞</div>
-				<h3>Support Center</h3>
-				<p>Get help and contact customer support</p>
-				<button>Get Support</button>
+				<div class="card-icon"><img src="{svgPhp}" alt="PHP logo" /></div>
+				<h3>PHP</h3>
+				<p>Open the PHP application</p>
+				<a class="link-button" href="http://localhost:8080" target="_blank" rel="noopener noreferrer">Open PHP</a>
 			</div>
 		</div>
 		
@@ -133,6 +195,10 @@
 		box-shadow: 0 8px 32px rgba(13, 71, 161, 0.1);
 		transition: all 0.3s ease;
 		border: 2px solid #e3f2fd;
+		overflow: hidden; /* keep buttons and icons inside rounded card */
+		display: flex;
+		flex-direction: column;
+		align-items: center;
 	}
 	
 	.card:hover {
@@ -142,9 +208,19 @@
 	}
 	
 	.card-icon {
-		font-size: 3rem;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		height: 64px;
 		margin-bottom: 1rem;
 		text-align: center;
+		/* ensure SVGs fit nicely */
+	}
+
+	.card-icon img, .card-icon svg {
+		width: 48px;
+		height: 48px;
+		object-fit: contain;
 	}
 	
 	.card h3 {
@@ -156,7 +232,8 @@
 	
 	.card p {
 		color: #424242;
-		margin-bottom: 1.5rem;
+		/* allow content to grow and push button to bottom */
+		margin: 0 0 1rem 0;
 		line-height: 1.6;
 		text-align: center;
 	}
@@ -176,6 +253,31 @@
 	.card button:hover {
 		background: linear-gradient(90deg, #1565c0, #2196f3);
 		transform: translateY(-1px);
+	}
+
+	/* make anchor links look like buttons inside cards and remain contained */
+	.card .link-button {
+		display: block;
+		box-sizing: border-box;
+		width: 100%;
+		text-align: center;
+		padding: 0.75rem 1.5rem;
+		background: linear-gradient(90deg, #1976d2, #42a5f5);
+		color: white;
+		border-radius: 8px;
+		font-weight: 600;
+		text-decoration: none;
+	}
+
+	.card .link-button:hover {
+		background: linear-gradient(90deg, #1565c0, #2196f3);
+		transform: translateY(-1px);
+	}
+
+	/* push link-button to the bottom of the card */
+	.card .link-button {
+		margin-top: auto;
+		align-self: stretch;
 	}
 	
 	.status-bar {
@@ -214,7 +316,7 @@
 	}
 	
 	.status-value.online::before {
-		content: '●';
+		content: '\25CF';
 		margin-right: 0.25rem;
 		animation: pulse 2s infinite;
 	}
@@ -243,4 +345,28 @@
 			align-items: flex-start;
 		}
 	}
+	.claims-box {
+		background: #e3f2fd;
+		color: #0d47a1;
+		border-radius: 8px;
+		margin: 2rem auto 0 auto;
+		padding: 1.5rem 2rem;
+		max-width: 600px;
+		box-shadow: 0 2px 8px rgba(33, 150, 243, 0.08);
+		text-align: left;
+	}
+	.claims-box pre {
+		background: #fff;
+		color: #222;
+		border-radius: 4px;
+		padding: 1rem;
+		font-size: 1rem;
+		overflow-x: auto;
+	}
+
+
+	/* Key / value colorization for JSON (use global selectors because content is inserted via {@html}) */
+	:global(.key) { color: #e65100; font-weight: 700; }
+	/* values use blue to match portal theme */
+	:global(.string), :global(.number), :global(.boolean), :global(.null) { color: #0d47a1; }
 </style>

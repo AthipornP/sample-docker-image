@@ -1,0 +1,12 @@
+HTTP/1.1 302 Found
+X-Powered-By: Express
+Location: https://s02.iampm.online/realms/master/protocol/openid-connect/auth?client_id=sample-customer-portal&response_type=code&scope=openid+profile+email&redirect_uri=http%3A%2F%2Flocalhost%3A3000%2Fauth%2Fcallback&code_challenge=SSMvYvClLHbKEtYm9lOgblyRhBmdzUXlpcF3UEgP27A&code_challenge_method=S256
+Vary: Accept
+Content-Type: text/plain; charset=utf-8
+Content-Length: 315
+Set-Cookie: connect.sid=s%3As-j1VflcnY_LT38R3Vb4xLqsm-iaW3cH.JF5Qvov9iroMBIf3H925nnhFbxxkrSY75l28fHBtQWU; Path=/; Expires=Fri, 26 Sep 2025 03:11:46 GMT; HttpOnly
+Date: Thu, 25 Sep 2025 03:11:46 GMT
+Connection: keep-alive
+Keep-Alive: timeout=5
+
+Found. Redirecting to https://s02.iampm.online/realms/master/protocol/openid-connect/auth?client_id=sample-customer-portal&response_type=code&scope=openid+profile+email&redirect_uri=http%3A%2F%2Flocalhost%3A3000%2Fauth%2Fcallback&code_challenge=SSMvYvClLHbKEtYm9lOgblyRhBmdzUXlpcF3UEgP27A&code_challenge_method=S256

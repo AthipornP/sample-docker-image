@@ -4,10 +4,10 @@
 			<a href="/">🏢 Customer Portal</a>
 		</div>
 		<div class="navbar-menu">
-			<a href="/" class="navbar-item">🏠 Dashboard</a>
+			<!-- <a href="/" class="navbar-item">🏠 Dashboard</a>
 			<a href="/account" class="navbar-item">👤 My Account</a>
 			<a href="/support" class="navbar-item">🎧 Support</a>
-			<a href="/profile" class="navbar-item">⚙️ Settings</a>
+			<a href="/profile" class="navbar-item">⚙️ Settings</a> -->
 		</div>
 	</div>
 </nav>
