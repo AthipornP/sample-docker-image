@@ -6,6 +6,7 @@
 
 	let currentTime = new Date().toLocaleString();
 	let user = null;
+	let userMarkdown = '';
 	let loading = true;
 	let accessToken = null;
 
@@ -14,6 +15,7 @@
 	// API test fields
  	let apiEndpoint = '';
  	let apiResponse = null;
+	let responseMarkdown = '';
  	let apiLoading = false;
 	let apiError = null;
 	let codeSnippet = '';
@@ -29,25 +31,7 @@
 	const svgPhp = '/assets/php.svg';
 
 	// helper to produce highlighted JSON where keys and values have different colors
-	function syntaxHighlight(json) {
-		if (typeof json !== 'string') json = JSON.stringify(json, null, 2);
-		json = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-		return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?)|(\b(true|false|null)\b)|(-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function (match) {
-			let cls = 'number';
-			if (/^\"/.test(match)) {
-				if (/:$/.test(match)) {
-					cls = 'key';
-				} else {
-					cls = 'string';
-				}
-			} else if (/true|false/.test(match)) {
-				cls = 'boolean';
-			} else if (/null/.test(match)) {
-				cls = 'null';
-			}
-			return '<span class="' + cls + '">' + match + '</span>';
-		});
-	}
+
 
 	async function fetchUser() {
 		try {
@@ -55,9 +39,11 @@
 			const data = await res.json();
 			if (data.authenticated) {
 				user = data.claims;
+				userMarkdown = '```json\n' + JSON.stringify(data.claims, null, 2) + '\n```';
 				accessToken = data.access_token || null;
 			} else {
 				user = null;
+				userMarkdown = '';
 			}
 		} finally {
 			loading = false;
@@ -119,6 +105,7 @@
 	async function callApi() {
 		apiError = null;
 		apiResponse = null;
+		responseMarkdown = '';
 		apiLoading = true;
 		try {
 			const url = apiEndpoint || buildDefaultEndpoint();
@@ -146,9 +133,13 @@
 			const text = await res.text();
 			try {
 				apiResponse = JSON.parse(text);
+				// สร้าง markdown สำหรับ JSON response
+				responseMarkdown = '```json\n' + JSON.stringify(apiResponse, null, 2) + '\n```';
 			} catch (e) {
 				// not JSON
 				apiResponse = text;
+				// สร้าง markdown สำหรับ plain text response
+				responseMarkdown = '```\n' + text + '\n```';
 			}
 			if (!res.ok) {
 				apiError = `HTTP ${res.status}: ${res.statusText}`;
@@ -177,8 +168,8 @@
 				{#if user}
 					<button class="auth-button" on:click={logout}>Logout</button>
 					<div class="claims-box">
-						<h2>User Claims</h2>
-						<pre>{@html syntaxHighlight(user)}</pre>
+						<h2 style="color: #e2e8f0;">User Claims</h2>
+						<MarkdownViewer source={userMarkdown} />
 					</div>
 					<div>
 						{#if accessToken}
@@ -236,7 +227,7 @@
 										<div class="success-badge">200 OK</div>
 									</div>
 									<div class="response-content">
-										<pre>{@html syntaxHighlight(apiResponse)}</pre>
+										<MarkdownViewer source={responseMarkdown} />
 									</div>
 								</div>
 							{/if}
@@ -554,24 +545,16 @@
 	}
 
 	.claims-box {
-		background: #e3f2fd;
-		color: #0d47a1;
+		background: #282c34;
+		color: #e2e8f0;
 		border-radius: 8px;
 		margin: 2rem auto 0 auto;
 		padding: 1.5rem 2rem;
 		max-width: 600px;
-		box-shadow: 0 2px 8px rgba(33, 150, 243, 0.08);
-		text-align: center; /* restored to center */
+		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+		text-align: left;
 	}
-	.claims-box pre {
-		background: #fff;
-		color: #222;
-		border-radius: 4px;
-		padding: 1rem;
-		font-size: 1rem;
-		overflow-x: auto;
-		text-align: left; /* keep code block left-aligned for readability */
-	}
+
 
 	/* API test area */
 	.api-test {
@@ -761,8 +744,8 @@
 	}
 
 	.api-response {
-		background: #f0f9ff;
-		border: 2px solid #bae6fd;
+		background: #282c34;
+		border: 2px solid #4a5568;
 		border-radius: 12px;
 		margin-bottom: 1.5rem;
 		overflow: hidden;
@@ -773,13 +756,13 @@
 		align-items: center;
 		justify-content: space-between;
 		padding: 1rem;
-		background: linear-gradient(90deg, #e0f2fe, #f0f9ff);
-		border-bottom: 1px solid #bae6fd;
+		background: linear-gradient(90deg, #1a202c, #2d3748);
+		border-bottom: 1px solid #4a5568;
 	}
 
 	.response-header h3 {
 		margin: 0;
-		color: #0369a1;
+		color: #e2e8f0;
 		font-size: 1.1rem;
 	}
 
@@ -794,16 +777,11 @@
 
 	.response-content {
 		padding: 1rem;
+		background: #282c34;
+		color: #e2e8f0;
 	}
 
-	.response-content pre {
-		background: #fff;
-		padding: 1rem;
-		border-radius: 8px;
-		overflow: auto;
-		margin: 0;
-		border: 1px solid #e0e7ff;
-	}
+
 
 	.api-code {
 		background: #fafbff;
