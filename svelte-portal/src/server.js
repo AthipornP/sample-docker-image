@@ -183,7 +183,12 @@ app.get('/api/apps', (req, res) => {
     { id: 'dotnet', name: '.NET 8', url: process.env.APP_DOTNET_URL || 'http://localhost:5000' },
     { id: 'php', name: 'PHP', url: process.env.APP_PHP_URL || 'http://localhost:8080' },
   ];
-  res.json({ apps });
+  // expose API URLs configured in .env so the frontend can call them without user input
+  const api = {
+    django: process.env.API_DJANGO_URL || ((process.env.APP_DJANGO_URL || 'http://localhost:8000').replace(/\/$/, '') + '/api/test')
+  };
+
+  res.json({ apps, api });
 });
 
 // Start server

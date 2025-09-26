@@ -1,8 +1,8 @@
 <script>
 	import { onMount } from 'svelte';
 	import Navbar from './Navbar.svelte';
+	import MarkdownViewer from './MarkdownViewer.svelte';
 	export let name;
-	import { marked } from 'marked';
 
 	let currentTime = new Date().toLocaleString();
 	let user = null;
@@ -10,6 +10,17 @@
 	let accessToken = null;
 
 	let apps = [];
+
+	// API test fields
+ 	let apiEndpoint = '';
+ 	let apiResponse = null;
+ 	let apiLoading = false;
+	let apiError = null;
+	let codeSnippet = '';
+	let showCode = false;
+	let selectedLang = 'javascript';
+	let codeByLang = {};
+
 
 
 	// Local SVG asset paths (served from public/)
@@ -59,6 +70,15 @@
 			if (res.ok) {
 				const json = await res.json();
 				apps = json.apps || [];
+				// if server returned api urls (from .env), prefer them
+				if (json.api && json.api.django) {
+					// use API_DJANGO_URL if available
+					apiEndpoint = json.api.django;
+				}
+				// if no apiEndpoint provided by user yet, prefill from env-configured apps
+				if (!apiEndpoint) {
+					apiEndpoint = buildDefaultEndpoint();
+				}
 			}
 		} catch (e) {
 			console.warn('Failed to fetch apps', e && e.message ? e.message : e);
@@ -87,6 +107,62 @@
 		// navigate in the same tab to the app
 		window.location.href = url;
 	}
+
+
+	function buildDefaultEndpoint() {
+		// try to guess a django app url from apps array
+		const django = apps.find(a => a.id === 'django' || a.id === 'django-api');
+		if (django && django.url) return django.url.replace(/\/$/, '') + '/api/test';
+		return '/api/test';
+	}
+
+	async function callApi() {
+		apiError = null;
+		apiResponse = null;
+		apiLoading = true;
+		try {
+			const url = apiEndpoint || buildDefaultEndpoint();
+			// build the code snippet for display
+			codeSnippet = `// Example: call Django API with access token\nfetch('${url}', {\n  method: 'GET',\n  headers: {\n    'Authorization': 'Bearer ${accessToken}',\n    'Accept': 'application/json'\n  }\n})\n  .then(r => r.json())\n  .then(json => console.log(json))\n  .catch(err => console.error(err));`;
+
+			// render as markdown code block for nicer display
+			// build snippets for multiple languages in markdown format
+			codeByLang = {
+				javascript: `\`\`\`javascript\n// JavaScript (fetch)\n${codeSnippet}\n\`\`\``,
+				python: `\`\`\`python\n# Python (requests)\nimport requests\nheaders = {'Authorization': 'Bearer ${accessToken}', 'Accept': 'application/json'}\nresp = requests.get('${url}', headers=headers)\nprint(resp.status_code)\nprint(resp.text)\n\`\`\``,
+				csharp: `\`\`\`cs\n// C# (.NET HttpClient)\nusing var client = new System.Net.Http.HttpClient();\nclient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", "${accessToken}");\nvar res = await client.GetAsync("${url}");\nvar text = await res.Content.ReadAsStringAsync();\nConsole.WriteLine(text);\n\`\`\``,
+				php: `\`\`\`php\n// PHP (cURL)\n$ch = curl_init();\ncurl_setopt($ch, CURLOPT_URL, '${url}');\ncurl_setopt($ch, CURLOPT_RETURNTRANSFER, true);\ncurl_setopt($ch, CURLOPT_HTTPHEADER, ['Authorization: Bearer ${accessToken}', 'Accept: application/json']);\n$response = curl_exec($ch);\ncurl_close($ch);\necho $response;\n\`\`\``,
+				curl: `\`\`\`bash\n# curl\ncurl -H "Authorization: Bearer ${accessToken}" -H "Accept: application/json" "${url}"\n\`\`\``
+			};
+
+
+
+			const res = await fetch(url, {
+				headers: {
+					'Authorization': accessToken ? `Bearer ${accessToken}` : '',
+					'Accept': 'application/json'
+				}
+			});
+			const text = await res.text();
+			try {
+				apiResponse = JSON.parse(text);
+			} catch (e) {
+				// not JSON
+				apiResponse = text;
+			}
+			if (!res.ok) {
+				apiError = `HTTP ${res.status}: ${res.statusText}`;
+			}
+		} catch (e) {
+			apiError = e && e.message ? e.message : String(e);
+		} finally {
+			apiLoading = false;
+		}
+	}
+
+	function selectLang(lang) {
+		selectedLang = lang;
+	}
 </script>
 
 <main>
@@ -110,6 +186,95 @@
 							<pre class="token-block"><code>{accessToken}</code></pre>
 						{/if}
 					</div>
+
+					<!-- API Test Section -->
+					{#if accessToken}
+						<div class="api-test">
+							<div class="api-header">
+								<h2>🔧 API Test</h2>
+								<p class="api-subtitle">Test Django API with your access token</p>
+							</div>
+							
+							<div class="api-endpoint-section">
+								<div class="endpoint-label">API Endpoint:</div>
+								<div class="endpoint-display">
+									<span class="endpoint-url">{apiEndpoint}</span>
+									<div class="endpoint-badge">GET</div>
+								</div>
+							</div>
+
+							<div class="api-controls">
+								<button class="call-api-button" on:click={callApi} disabled={apiLoading}>
+									{#if apiLoading}
+										<span class="loading-spinner"></span>
+										Calling...
+									{:else}
+										<span class="call-icon">🚀</span>
+										Call API
+									{/if}
+								</button>
+								<button class="show-code-button" on:click={() => showCode = !showCode}>
+									<span class="code-icon">{showCode ? '🙈' : '💻'}</span>
+									{showCode ? 'Hide Code' : 'Show Code'}
+								</button>
+							</div>
+
+							{#if apiError}
+								<div class="api-error">
+									<div class="error-icon">❌</div>
+									<div class="error-content">
+										<strong>Error:</strong>
+										<span>{apiError}</span>
+									</div>
+								</div>
+							{/if}
+
+							{#if apiResponse}
+								<div class="api-response">
+									<div class="response-header">
+										<h3>📋 Response</h3>
+										<div class="success-badge">200 OK</div>
+									</div>
+									<div class="response-content">
+										<pre>{@html syntaxHighlight(apiResponse)}</pre>
+									</div>
+								</div>
+							{/if}
+
+							{#if showCode}
+								<div class="api-code">
+									<div class="code-header">
+										<h3>👨‍💻 Code Examples</h3>
+										<p class="code-subtitle">Copy and use in your application</p>
+									</div>
+									
+									<div class="lang-buttons">
+										{#each Object.keys(codeByLang) as lang}
+											<button 
+												class="lang-button" 
+												class:active={selectedLang===lang} 
+												on:click={() => selectLang(lang)}
+											>
+												<span class="lang-icon">
+													{#if lang === 'javascript'}🟨
+													{:else if lang === 'python'}🐍
+													{:else if lang === 'csharp'}🔷
+													{:else if lang === 'php'}🐘
+													{:else if lang === 'curl'}⚡
+													{:else}📝{/if}
+												</span>
+												{lang === 'csharp' ? 'C#' : lang.charAt(0).toUpperCase() + lang.slice(1)}
+											</button>
+										{/each}
+									</div>
+									
+									<div class="code-block-container">
+										<MarkdownViewer source={codeByLang[selectedLang]} />
+									</div>
+								</div>
+							{/if}
+						</div>
+					{/if}
 				{:else}
 						<button class="auth-button" on:click={login}>Login with SSO</button>
 					{/if}
@@ -407,6 +572,342 @@
 		overflow-x: auto;
 		text-align: left; /* keep code block left-aligned for readability */
 	}
+
+	/* API test area */
+	.api-test {
+		background: linear-gradient(135deg, #ffffff 0%, #f8faff 100%);
+		border-radius: 16px;
+		padding: 2rem;
+		margin: 2rem auto 0 auto;
+		max-width: 900px;
+		text-align: left;
+		box-shadow: 0 8px 32px rgba(13, 71, 161, 0.12);
+		border: 2px solid #e3f2fd;
+		position: relative;
+		overflow: hidden;
+	}
+
+	.api-test::before {
+		content: '';
+		position: absolute;
+		top: 0;
+		right: 0;
+		width: 100px;
+		height: 100px;
+		background: linear-gradient(135deg, #42a5f5 0%, #1976d2 100%);
+		opacity: 0.05;
+		border-radius: 50%;
+		transform: translate(30px, -30px);
+	}
+
+	.api-header {
+		margin-bottom: 1.5rem;
+		position: relative;
+		z-index: 1;
+	}
+
+	.api-header h2 {
+		color: #0d47a1;
+		margin: 0 0 0.5rem 0;
+		font-size: 1.8rem;
+		font-weight: 700;
+	}
+
+	.api-subtitle {
+		color: #666;
+		margin: 0;
+		font-size: 1rem;
+		opacity: 0.8;
+	}
+
+	.api-endpoint-section {
+		background: #f8faff;
+		border: 2px solid #e3f2fd;
+		border-radius: 12px;
+		padding: 1rem;
+		margin-bottom: 1.5rem;
+	}
+
+	.endpoint-label {
+		display: block;
+		color: #0d47a1;
+		font-weight: 600;
+		font-size: 0.9rem;
+		margin-bottom: 0.5rem;
+		text-transform: uppercase;
+		letter-spacing: 0.5px;
+	}
+
+	.endpoint-display {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+	}
+
+	.endpoint-url {
+		flex: 1;
+		background: #fff;
+		padding: 0.75rem 1rem;
+		border-radius: 8px;
+		border: 1px solid #cfe3ff;
+		color: #1565c0;
+		font-family: 'Consolas', 'Monaco', monospace;
+		font-size: 0.9rem;
+	}
+
+	.endpoint-badge {
+		background: linear-gradient(90deg, #4caf50, #66bb6a);
+		color: white;
+		padding: 0.5rem 0.75rem;
+		border-radius: 6px;
+		font-weight: 600;
+		font-size: 0.8rem;
+		letter-spacing: 0.5px;
+	}
+
+	.api-controls {
+		display: flex;
+		gap: 1rem;
+		margin-bottom: 1.5rem;
+	}
+
+	.call-api-button {
+		flex: 1;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 0.5rem;
+		padding: 0.875rem 1.5rem;
+		background: linear-gradient(90deg, #ff8a00, #ff5722);
+		border: none;
+		color: white;
+		border-radius: 12px;
+		font-weight: 700;
+		cursor: pointer;
+		transition: all 0.3s ease;
+		box-shadow: 0 4px 16px rgba(255, 87, 34, 0.3);
+		font-size: 1rem;
+	}
+
+	.call-api-button:hover:not(:disabled) {
+		transform: translateY(-2px);
+		box-shadow: 0 8px 24px rgba(255, 87, 34, 0.4);
+	}
+
+	.call-api-button:disabled {
+		opacity: 0.7;
+		cursor: not-allowed;
+	}
+
+	.show-code-button {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		padding: 0.875rem 1.5rem;
+		background: linear-gradient(90deg, #6a1b9a, #8e24aa);
+		border: none;
+		color: white;
+		border-radius: 12px;
+		font-weight: 700;
+		cursor: pointer;
+		transition: all 0.3s ease;
+		box-shadow: 0 4px 16px rgba(106, 27, 154, 0.3);
+		font-size: 1rem;
+	}
+
+	.show-code-button:hover {
+		transform: translateY(-2px);
+		box-shadow: 0 8px 24px rgba(106, 27, 154, 0.4);
+	}
+
+	.loading-spinner {
+		width: 16px;
+		height: 16px;
+		border: 2px solid rgba(255, 255, 255, 0.3);
+		border-top: 2px solid white;
+		border-radius: 50%;
+		animation: spin 1s linear infinite;
+	}
+
+	@keyframes spin {
+		0% { transform: rotate(0deg); }
+		100% { transform: rotate(360deg); }
+	}
+
+	.api-error {
+		display: flex;
+		align-items: flex-start;
+		gap: 0.75rem;
+		background: linear-gradient(90deg, #ffebee, #fff0f1);
+		border: 2px solid #ffcdd2;
+		border-radius: 12px;
+		padding: 1rem;
+		margin-bottom: 1.5rem;
+	}
+
+	.error-icon {
+		font-size: 1.2rem;
+		flex-shrink: 0;
+	}
+
+	.error-content {
+		flex: 1;
+		color: #b00020;
+	}
+
+	.error-content strong {
+		display: block;
+		margin-bottom: 0.25rem;
+	}
+
+	.api-response {
+		background: #f0f9ff;
+		border: 2px solid #bae6fd;
+		border-radius: 12px;
+		margin-bottom: 1.5rem;
+		overflow: hidden;
+	}
+
+	.response-header {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding: 1rem;
+		background: linear-gradient(90deg, #e0f2fe, #f0f9ff);
+		border-bottom: 1px solid #bae6fd;
+	}
+
+	.response-header h3 {
+		margin: 0;
+		color: #0369a1;
+		font-size: 1.1rem;
+	}
+
+	.success-badge {
+		background: linear-gradient(90deg, #4caf50, #66bb6a);
+		color: white;
+		padding: 0.25rem 0.5rem;
+		border-radius: 6px;
+		font-size: 0.8rem;
+		font-weight: 600;
+	}
+
+	.response-content {
+		padding: 1rem;
+	}
+
+	.response-content pre {
+		background: #fff;
+		padding: 1rem;
+		border-radius: 8px;
+		overflow: auto;
+		margin: 0;
+		border: 1px solid #e0e7ff;
+	}
+
+	.api-code {
+		background: #fafbff;
+		border: 2px solid #e0e7ff;
+		border-radius: 12px;
+		overflow: hidden;
+	}
+
+	.code-header {
+		padding: 1rem;
+		background: linear-gradient(90deg, #f1f5f9, #fafbff);
+		border-bottom: 1px solid #e0e7ff;
+	}
+
+	.code-header h3 {
+		margin: 0 0 0.5rem 0;
+		color: #334155;
+		font-size: 1.1rem;
+	}
+
+	.code-subtitle {
+		margin: 0;
+		color: #64748b;
+		font-size: 0.9rem;
+	}
+
+	.lang-buttons {
+		display: flex;
+		gap: 0.5rem;
+		padding: 1rem;
+		background: #f8fafc;
+		border-bottom: 1px solid #e0e7ff;
+		flex-wrap: wrap;
+	}
+
+	.lang-button {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		padding: 0.5rem 0.75rem;
+		border-radius: 8px;
+		border: 2px solid #e2e8f0;
+		background: #fff;
+		cursor: pointer;
+		transition: all 0.2s ease;
+		font-weight: 600;
+		font-size: 0.9rem;
+		color: #475569;
+	}
+
+	.lang-button:hover {
+		border-color: #94a3b8;
+		transform: translateY(-1px);
+		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+	}
+
+	.lang-button.active {
+		background: linear-gradient(90deg, #3b82f6, #60a5fa);
+		color: white;
+		border-color: #2563eb;
+		box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+	}
+
+	.lang-icon {
+		font-size: 1rem;
+	}
+
+	.code-block-container {
+		padding: 1rem;
+		background: #fff;
+	}
+
+	/* Custom dark theme that works with local Prism.js */
+	.code-block-container {
+		background: #2d3748;
+		border-radius: 8px;
+		border: 1px solid #4a5568;
+		overflow: hidden;
+		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+	}
+
+	/* Force override Prism's default styles with highest priority */
+	/* ให้ highlight.js จัดการสีเอง - ไม่ override */
+	.code-block-container :global(pre) {
+		padding: 1.5rem;
+		margin: 0;
+		border-radius: 0;
+		border: none;
+		font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+		font-size: 0.9rem;
+		line-height: 1.6;
+		overflow-x: auto;
+		white-space: pre;
+		text-shadow: none;
+	}
+
+	.code-block-container :global(code) {
+		font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+		font-size: 0.9rem;
+		line-height: 1.6;
+		text-shadow: none;
+		white-space: pre;
+	}
+
 
 	.token-block {
 		background:#071226;
