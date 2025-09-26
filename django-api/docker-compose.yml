@@ -1,0 +1,14 @@
+version: '3.8'
+
+services:
+  django-api:
+    build: .
+    container_name: django-api
+    ports:
+      - "8001:8000"
+    environment:
+      - DEBUG=1
+      - DJANGO_SETTINGS_MODULE=config.settings
+    volumes:
+      - .:/app
+    restart: unless-stopped
