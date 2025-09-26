@@ -94,7 +94,7 @@
 	<div class="hero-section">
 		<div class="hero-content">
 			<h1>Welcome to Customer Portal</h1>
-			<p class="hero-subtitle">Your gateway to excellent customer service</p>
+			<p class="hero-subtitle">All apps authenticate with Keycloak SSO</p>
 			{#if loading}
 				<p>Loading authentication...</p>
 			{:else}
