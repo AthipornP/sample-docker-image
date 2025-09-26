@@ -139,6 +139,8 @@ def private_view(request):
     .btn{display:inline-block;padding:10px 16px;color:#fff;border-radius:8px;text-decoration:none;font-weight:700}
     .btn-orange{background:#ff7a18}
     .btn-blue{background:#1976d2}
+    /* ghost button: match home page Back to Portal styling */
+    .btn-ghost{background:#e2e8f0;color:#0f1724;font-weight:600;border-radius:8px;padding:10px 16px;text-decoration:none}
     pre{background:#0f1724;color:#e6edf3;padding:12px;border-radius:8px;overflow:auto}
     /* token-block: ensure long tokens wrap nicely (handles no-space long strings) */
     .token-block pre{background:#071226;color:#dbeefd;padding:12px;border-radius:8px;overflow:auto;white-space:pre-wrap;word-break:break-word;word-wrap:break-word;overflow-wrap:anywhere}
@@ -168,5 +170,5 @@ def private_view(request):
     else:
         access_html = "<p class=\"muted\">No access token present in session.</p>"
 
-    body = f"{style}<div class=\"card\"><h1>Protected page</h1><p>You successfully authenticated via SSO.</p><h3>User claims</h3>{json_html}{access_html}<p><a class=\"btn btn-orange\" href=\"/logout\">Logout</a> <a class=\"btn btn-blue\" style=\"margin-left:12px;\" href=\"/\">Home</a></p></div>"
+    body = f"{style}<div class=\"card\"><h1>Protected page</h1><p>You successfully authenticated via SSO.</p><h3>User claims</h3>{json_html}{access_html}<p><a class=\"btn btn-orange\" href=\"/logout\">Logout</a> <a class=\"btn btn-blue\" style=\"margin-left:12px;\" href=\"/\">Home</a> <a class=\"btn btn-ghost\" style=\"margin-left:12px;\" href=\"http://localhost:3000\">Back to Portal</a></p></div>"
     return HttpResponse(body)
