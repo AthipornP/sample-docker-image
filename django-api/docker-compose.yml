@@ -13,6 +13,7 @@ services:
       - DJANGO_SETTINGS_MODULE=config.settings
     volumes:
       - .:/app
+    entrypoint: ["sh", "-c", "sed -i 's/\r$//' /app/docker-entrypoint.sh || true; sh /app/docker-entrypoint.sh"]
     restart: unless-stopped
     networks:
       customnet:

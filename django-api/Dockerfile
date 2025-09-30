@@ -23,10 +23,12 @@ COPY . /app/
 
 # Make entrypoint script executable
 COPY docker-entrypoint.sh /app/
-RUN chmod +x /app/docker-entrypoint.sh
+# Ensure script has Unix line endings (in case repo is edited on Windows) and make it executable
+RUN sed -i 's/\r$//' /app/docker-entrypoint.sh \
+    && chmod +x /app/docker-entrypoint.sh
 
 # Expose port
 EXPOSE 8000
 
-# Run entrypoint script
-ENTRYPOINT ["/app/docker-entrypoint.sh"]
+# Run entrypoint script via sh (avoids missing /bin/bash or executable-bit issues when host mounts override file permissions)
+ENTRYPOINT ["sh", "/app/docker-entrypoint.sh"]
