@@ -1,0 +1,17 @@
+services:
+  api:
+    build: .
+    ports:
+      - "${PORT:-5100}:80"
+    env_file:
+      - .env
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+    volumes:
+      - ./:/src
+    networks:
+      - customnet
+
+networks:
+  customnet:
+    external: true

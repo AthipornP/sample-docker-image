@@ -187,6 +187,172 @@ const DJANGO_JWT_SNIPPET = `class KeycloakJWTAuthentication(authentication.BaseA
     """
     return 'Bearer realm="keycloak"'`;
 
+const DOTNET_JWT_SNIPPET = `// Middleware นี้ทำหน้าที่ตรวจสอบ JWT จาก Keycloak ก่อนให้คำขอเข้าสู่ API หลัก
+public sealed class KeycloakJwtMiddleware
+{
+  public const string TokenPayloadKey = "KeycloakTokenPayload";
+
+  private readonly RequestDelegate _next;
+  private readonly ILogger<KeycloakJwtMiddleware> _logger;
+  private readonly KeycloakJwtValidator _validator;
+
+  private static readonly string[] _anonymousPrefixes =
+  {
+    "/api/health",
+    "/health",
+    "/_health"
+  };
+
+  public KeycloakJwtMiddleware(RequestDelegate next, ILogger<KeycloakJwtMiddleware> logger, KeycloakJwtValidator validator)
+  {
+    _next = next;
+    _logger = logger;
+    _validator = validator;
+  }
+
+  public async Task InvokeAsync(HttpContext context)
+  {
+    // อนุญาตให้คำขอแบบ OPTIONS (preflight) ผ่านไปโดยไม่ตรวจ JWT เพื่อรองรับ CORS
+    if (HttpMethods.IsOptions(context.Request.Method))
+    {
+      await _next(context);
+      return;
+    }
+
+    // ตรวจสอบว่าเส้นทางนี้อยู่ในรายการยกเว้นที่ไม่ต้องตรวจสอบสิทธิ์หรือไม่
+    if (ShouldBypass(context.Request.Path))
+    {
+      await _next(context);
+      return;
+    }
+
+    // ดึงค่า Authorization header แล้วตรวจว่ามี Bearer token หรือไม่
+    var authHeader = context.Request.Headers.Authorization.FirstOrDefault();
+    if (string.IsNullOrWhiteSpace(authHeader) || !authHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+    {
+      await WriteUnauthorizedAsync(context, "Missing bearer token.");
+      return;
+    }
+
+    // ตัดคำว่า "Bearer" ออกแล้วเก็บเฉพาะตัว token จริง ๆ
+    var token = authHeader["Bearer ".Length..].Trim();
+    if (string.IsNullOrEmpty(token))
+    {
+      await WriteUnauthorizedAsync(context, "Empty bearer token.");
+      return;
+    }
+
+    try
+    {
+      // ส่ง token ไปให้ตัว Validator ตรวจสอบลายเซ็น วันหมดอายุ และข้อมูลอื่น ๆ
+      var result = await _validator.ValidateAsync(token, context.RequestAborted).ConfigureAwait(false);
+      // หากผ่านการตรวจสอบ ให้ผูก ClaimsPrincipal กับ HttpContext.User เพื่อใช้ต่อใน endpoint
+      context.User = result.Principal;
+      // เก็บ payload ดิบไว้ใน context.Items เผื่อ endpoint ภายหลังต้องใช้ข้อมูล claim เพิ่มเติม
+      context.Items[TokenPayloadKey] = result.Payload;
+      await _next(context);
+    }
+    catch (Exception ex)
+    {
+      // ถ้า JWT ตรวจไม่ผ่าน ให้คืน 401 พร้อมรายละเอียด และบันทึก log ไว้
+      _logger.LogWarning(ex, "JWT validation failed.");
+      await WriteUnauthorizedAsync(context, ex.Message);
+    }
+  }
+
+  private static bool ShouldBypass(PathString path)
+  {
+    // ถ้าไม่มี path ให้ถือว่ายกเว้นไปเลย (เช่น คำขอวิ่งมาที่ root)
+    if (!path.HasValue)
+    {
+      return true;
+    }
+
+    foreach (var prefix in _anonymousPrefixes)
+    {
+      // ถ้า path ขึ้นต้นด้วย prefix ที่อนุญาต ก็ผ่านโดยไม่ต้องตรวจ JWT
+      if (path.StartsWithSegments(prefix, StringComparison.OrdinalIgnoreCase))
+      {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  private static Task WriteUnauthorizedAsync(HttpContext context, string message)
+  {
+    // สร้าง response แบบ JSON ตอบกลับให้ client ทราบว่าไม่ผ่านการตรวจสอบสิทธิ์
+    context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+    context.Response.ContentType = "application/json";
+    var payload = JsonSerializer.Serialize(new
+    {
+      error = "Unauthorized",
+      detail = message
+    });
+    return context.Response.WriteAsync(payload);
+  }
+}
+
+// ตัว Validator สำหรับตรวจสอบลายเซ็นและข้อมูลภายใน JWT ที่ออกโดย Keycloak
+public sealed class KeycloakJwtValidator
+{
+  private readonly KeycloakJwksCache _jwksCache;
+  private readonly KeycloakJwtOptions _options;
+
+  public KeycloakJwtValidator(KeycloakJwksCache jwksCache, KeycloakJwtOptions options)
+  {
+    _jwksCache = jwksCache;
+    _options = options;
+  }
+
+  public async Task<KeycloakValidationResult> ValidateAsync(string token, CancellationToken cancellationToken = default)
+  {
+    // ใช้ JwtSecurityTokenHandler ของ .NET ในการตรวจสอบความถูกต้องของ token
+    var handler = new JwtSecurityTokenHandler();
+    var validationParameters = await BuildValidationParametersAsync(cancellationToken).ConfigureAwait(false);
+
+    // หากตรวจสอบผ่าน จะได้ ClaimsPrincipal และ security token กลับมา
+    var principal = handler.ValidateToken(token, validationParameters, out var securityToken);
+    if (securityToken is not JwtSecurityToken jwt)
+    {
+      throw new SecurityTokenException("Token is not a JWT.");
+    }
+
+    // เก็บ payload ของ JWT ที่ยังมีข้อมูลไว้เป็น dictionary เพื่อใช้งานต่อ
+    var payload = jwt.Payload
+      .Where(kvp => kvp.Value is not null)
+      .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+
+    return new KeycloakValidationResult(principal, payload);
+  }
+
+  private async Task<TokenValidationParameters> BuildValidationParametersAsync(CancellationToken cancellationToken)
+  {
+    // ดึงชุดกุญแจสาธารณะ (JWKS) จาก cache เพื่อใช้ตรวจลายเซ็นของ token
+    var keySet = await _jwksCache.GetKeySetAsync(cancellationToken).ConfigureAwait(false);
+
+    // กำหนดกฎการตรวจสอบต่าง ๆ เช่น issuer, audience, วันหมดอายุ และลายเซ็น
+    var parameters = new TokenValidationParameters
+    {
+      ValidateIssuer = !string.IsNullOrWhiteSpace(_options.Issuer),
+      ValidIssuer = _options.Issuer,
+      ValidateAudience = !string.IsNullOrWhiteSpace(_options.Audience),
+      ValidAudience = _options.Audience,
+      ValidateLifetime = true,
+      RequireExpirationTime = true,
+      RequireSignedTokens = true,
+      ValidateIssuerSigningKey = true,
+      IssuerSigningKeys = keySet.GetSigningKeys(),
+      ClockSkew = TimeSpan.FromMinutes(2)
+    };
+
+    return parameters;
+  }
+}
+
+public sealed record KeycloakValidationResult(ClaimsPrincipal Principal, IDictionary<string, object?> Payload);`;
+
 let client; // kept for compatibility but not used when using manual discovery
 
 // Serve static files
@@ -285,15 +451,53 @@ app.get('/api/apps', (req, res) => {
     { id: 'php', name: 'PHP', url: process.env.APP_PHP_URL || 'http://localhost:8080' },
   ];
   // expose API URLs configured in .env so the frontend can call them without user input
-  const api = {
-    django: process.env.API_DJANGO_URL || ((process.env.APP_DJANGO_URL || 'http://localhost:8000').replace(/\/$/, '') + '/api/test')
-  };
+  const api = [
+    {
+      id: 'django',
+      name: 'Django API',
+      method: 'GET',
+      url: process.env.API_DJANGO_URL || ((process.env.APP_DJANGO_URL || 'http://localhost:8000').replace(/\/$/, '') + '/api/weather/bangkok'),
+      description: 'Django REST Framework weather endpoint (Bangkok)'
+    },
+    {
+      id: 'dotnet',
+      name: '.NET 8 API',
+      method: 'GET',
+      url: process.env.API_DOTNET_URL || ((process.env.APP_DOTNET_API_URL || 'http://localhost:5100').replace(/\/$/, '') + '/api/weather/tokyo'),
+      description: 'ASP.NET Core weather endpoint (Tokyo)'
+    }
+  ];
 
   res.json({ apps, api });
 });
 
+app.get('/api/code/jwt', (req, res) => {
+  const service = (req.query.service || 'django').toString().toLowerCase();
+  const isDotnet = service === 'dotnet' || service === 'dotnet-api' || service === '.net' || service === 'dotnet8';
+
+  if (isDotnet) {
+    return res.json({
+      code: DOTNET_JWT_SNIPPET,
+      language: 'csharp',
+      languageLabel: 'C#',
+      filename: 'dotnet8-api/Auth/KeycloakJwtMiddleware.cs',
+      service: 'dotnet',
+      serviceLabel: '.NET 8 API (C#)'
+    });
+  }
+
+  return res.json({
+    code: DJANGO_JWT_SNIPPET,
+    language: 'python',
+    languageLabel: 'Python',
+    filename: 'django-api/api/authentication.py',
+    service: 'django',
+    serviceLabel: 'Django API (Python)'
+  });
+});
+
 app.get('/api/code/django-jwt', (req, res) => {
-  res.json({ code: DJANGO_JWT_SNIPPET });
+  res.json({ code: DJANGO_JWT_SNIPPET, language: 'python', service: 'django' });
 });
 
 // Start server

@@ -13,18 +13,37 @@
 	let apps = [];
 
 	// API test fields
- 	let apiEndpoint = '';
- 	let apiResponse = null;
+	let apiResponse = null;
 	let responseMarkdown = '';
- 	let apiLoading = false;
+	let apiLoading = false;
 	let apiError = null;
+	let apiStatus = '';
 	let codeSnippet = '';
 	let showCode = false;
 	let selectedLang = 'javascript';
 	let codeByLang = {};
-	let jwtVerificationMarkdown = '';
+	let jwtCodeByService = {};
 	let jwtLoading = false;
 	let jwtError = null;
+	let availableApis = [];
+	let selectedApiId = '';
+	$: selectedApi = availableApis.find(a => a.id === selectedApiId) || null;
+	$: apiEndpoint = selectedApi ? selectedApi.url : '';
+	$: currentJwtMeta = selectedApiId ? (jwtCodeByService[selectedApiId] || null) : null;
+	$: currentJwtMarkdown = currentJwtMeta ? currentJwtMeta.markdown : '';
+	$: currentJwtFilename = currentJwtMeta && currentJwtMeta.filename
+		? currentJwtMeta.filename
+		: selectedApiId === 'dotnet'
+			? 'dotnet8-api/Auth/KeycloakJwtMiddleware.cs'
+			: 'django-api/api/authentication.py';
+	$: currentJwtLanguageLabel = currentJwtMeta && currentJwtMeta.languageLabel
+		? currentJwtMeta.languageLabel
+		: selectedApiId === 'dotnet'
+			? 'C#'
+			: 'Python';
+	$: if (showCode && selectedApiId && !jwtCodeByService[selectedApiId]) {
+		ensureJwtCodeLoaded(selectedApiId);
+	}
 
 
 
@@ -59,14 +78,25 @@
 			if (res.ok) {
 				const json = await res.json();
 				apps = json.apps || [];
-				// if server returned api urls (from .env), prefer them
-				if (json.api && json.api.django) {
-					// use API_DJANGO_URL if available
-					apiEndpoint = json.api.django;
+				const parsedApis = Array.isArray(json.api)
+					? json.api
+					: json.api && typeof json.api === 'object'
+						? Object.entries(json.api).map(([id, value]) => {
+							if (typeof value === 'string') {
+								return { id, name: id, url: value, method: 'GET' };
+							}
+							return { id, ...value };
+						})
+						: [];
+				availableApis = parsedApis.filter(api => api && api.url);
+				if (!availableApis.length) {
+					availableApis = [
+						{ id: 'django', name: 'Django API', method: 'GET', url: buildDefaultEndpoint(), description: 'Django REST Framework weather endpoint (Bangkok)' },
+						{ id: 'dotnet', name: '.NET 8 API', method: 'GET', url: 'http://localhost:5100/api/weather/tokyo', description: 'ASP.NET Core weather endpoint (Tokyo)' }
+					];
 				}
-				// if no apiEndpoint provided by user yet, prefill from env-configured apps
-				if (!apiEndpoint) {
-					apiEndpoint = buildDefaultEndpoint();
+				if (!selectedApiId && availableApis.length) {
+					selectedApiId = availableApis[0].id;
 				}
 			}
 		} catch (e) {
@@ -210,8 +240,8 @@ async function checkUserStatus() {
 	function buildDefaultEndpoint() {
 		// try to guess a django app url from apps array
 		const django = apps.find(a => a.id === 'django' || a.id === 'django-api');
-		if (django && django.url) return django.url.replace(/\/$/, '') + '/api/test';
-		return '/api/test';
+		if (django && django.url) return django.url.replace(/\/$/, '') + '/api/weather/bangkok';
+		return 'http://localhost:8000/api/weather/bangkok';
 	}
 
 	async function callApi() {
@@ -219,29 +249,36 @@ async function checkUserStatus() {
 		apiResponse = null;
 		responseMarkdown = '';
 		apiLoading = true;
+		apiStatus = '';
 		try {
-			const url = apiEndpoint || buildDefaultEndpoint();
+			const target = selectedApi || availableApis[0];
+			if (!target || !target.url) {
+				throw new Error('No API endpoint configured');
+			}
+			const method = (target.method || 'GET').toUpperCase();
+			const url = target.url;
 			// build the code snippet for display
-			codeSnippet = `// Example: call Django API with access token\nfetch('${url}', {\n  method: 'GET',\n  headers: {\n    'Authorization': 'Bearer ${accessToken}',\n    'Accept': 'application/json'\n  }\n})\n  .then(r => r.json())\n  .then(json => console.log(json))\n  .catch(err => console.error(err));`;
+			codeSnippet = `// Example: call ${target.name || 'the API'} with access token\nfetch('${url}', {\n  method: '${method}',\n  headers: {\n    'Authorization': 'Bearer ${accessToken}',\n    'Accept': 'application/json'\n  }\n})\n  .then(r => r.json())\n  .then(json => console.log(json))\n  .catch(err => console.error(err));`;
 
 			// render as markdown code block for nicer display
 			// build snippets for multiple languages in markdown format
 			codeByLang = {
 				javascript: `\`\`\`javascript\n// JavaScript (fetch)\n${codeSnippet}\n\`\`\``,
-				python: `\`\`\`python\n# Python (requests)\nimport requests\nheaders = {'Authorization': 'Bearer ${accessToken}', 'Accept': 'application/json'}\nresp = requests.get('${url}', headers=headers)\nprint(resp.status_code)\nprint(resp.text)\n\`\`\``,
-				csharp: `\`\`\`cs\n// C# (.NET HttpClient)\nusing var client = new System.Net.Http.HttpClient();\nclient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", "${accessToken}");\nvar res = await client.GetAsync("${url}");\nvar text = await res.Content.ReadAsStringAsync();\nConsole.WriteLine(text);\n\`\`\``,
-				php: `\`\`\`php\n// PHP (cURL)\n$ch = curl_init();\ncurl_setopt($ch, CURLOPT_URL, '${url}');\ncurl_setopt($ch, CURLOPT_RETURNTRANSFER, true);\ncurl_setopt($ch, CURLOPT_HTTPHEADER, ['Authorization: Bearer ${accessToken}', 'Accept: application/json']);\n$response = curl_exec($ch);\ncurl_close($ch);\necho $response;\n\`\`\``,
-				curl: `\`\`\`bash\n# curl\ncurl -H "Authorization: Bearer ${accessToken}" -H "Accept: application/json" "${url}"\n\`\`\``
+				python: `\`\`\`python\n# Python (requests)\nimport requests\nheaders = {'Authorization': 'Bearer ${accessToken}', 'Accept': 'application/json'}\nresp = requests.request('${method}', '${url}', headers=headers)\nprint(resp.status_code)\nprint(resp.text)\n\`\`\``,
+				csharp: `\`\`\`cs\n// C# (.NET HttpClient)\nusing var client = new System.Net.Http.HttpClient();\nclient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", "${accessToken}");\nvar request = new System.Net.Http.HttpRequestMessage(new System.Net.Http.HttpMethod("${method}"), "${url}");\nvar res = await client.SendAsync(request);\nvar text = await res.Content.ReadAsStringAsync();\nConsole.WriteLine(text);\n\`\`\``,
+				php: `\`\`\`php\n// PHP (cURL)\n$ch = curl_init();\ncurl_setopt($ch, CURLOPT_URL, '${url}');\ncurl_setopt($ch, CURLOPT_RETURNTRANSFER, true);\ncurl_setopt($ch, CURLOPT_CUSTOMREQUEST, '${method}');\ncurl_setopt($ch, CURLOPT_HTTPHEADER, ['Authorization: Bearer ${accessToken}', 'Accept: application/json']);\n$response = curl_exec($ch);\ncurl_close($ch);\necho $response;\n\`\`\``,
+				curl: `\`\`\`bash\n# curl\ncurl -X ${method} -H "Authorization: Bearer ${accessToken}" -H "Accept: application/json" "${url}"\n\`\`\``
 			};
 
-
-
 			const res = await fetch(url, {
+				method,
 				headers: {
 					'Authorization': accessToken ? `Bearer ${accessToken}` : '',
 					'Accept': 'application/json'
 				}
 			});
+			apiStatus = `${res.status} ${res.statusText || ''}`.trim();
+			apiStatus = `HTTP ${res.status}${res.statusText ? ' ' + res.statusText : ''}`;
 			const text = await res.text();
 			try {
 				apiResponse = JSON.parse(text);
@@ -263,20 +300,44 @@ async function checkUserStatus() {
 		}
 	}
 
-	async function ensureJwtCodeLoaded() {
-		if (jwtVerificationMarkdown || jwtLoading) return;
+	async function ensureJwtCodeLoaded(serviceId) {
+		const key = (serviceId || 'django').toLowerCase();
+		if (jwtCodeByService[key]) {
+			return jwtCodeByService[key];
+		}
 		jwtLoading = true;
 		jwtError = null;
 		try {
-			const res = await fetch('/api/code/django-jwt');
+			const res = await fetch(`/api/code/jwt?service=${encodeURIComponent(key)}`);
 			if (!res.ok) {
 				throw new Error(`Failed to load code (HTTP ${res.status})`);
 			}
 			const data = await res.json();
-			const code = (data.code || '').trim();
-			jwtVerificationMarkdown = code ? '```python\n' + code + '\n```' : '';
+			const normalized = (data.service || key).toString().toLowerCase();
+			const languageRaw = (data.language || '').toString().toLowerCase();
+			const syntax = languageRaw === 'csharp' || languageRaw === 'cs'
+				? 'csharp'
+				: languageRaw === 'python'
+					? 'python'
+					: languageRaw || 'text';
+			const code = typeof data.code === 'string' ? data.code.trim() : '';
+			const matchedApi = availableApis.find(api => api.id === normalized);
+			const languageLabel = data.languageLabel || (languageRaw === 'csharp' || languageRaw === 'cs' ? 'C#' : languageRaw === 'python' ? 'Python' : (data.language || 'Code'));
+			const filename = data.filename || (normalized === 'dotnet' ? 'dotnet8-api/Auth/KeycloakJwtMiddleware.cs' : 'django-api/api/authentication.py');
+			const serviceLabel = data.serviceLabel || (matchedApi ? matchedApi.name : normalized.toUpperCase());
+			const payload = {
+				markdown: code ? `\`\`\`${syntax}\n${code}\n\`\`\`` : '',
+				language: languageRaw || data.language || 'text',
+				languageLabel,
+				filename,
+				service: normalized,
+				serviceLabel
+			};
+			jwtCodeByService = { ...jwtCodeByService, [normalized]: payload };
+			return payload;
 		} catch (e) {
 			jwtError = e && e.message ? e.message : String(e);
+			return null;
 		} finally {
 			jwtLoading = false;
 		}
@@ -285,7 +346,7 @@ async function checkUserStatus() {
 	function toggleCodePanel() {
 		showCode = !showCode;
 		if (showCode) {
-			ensureJwtCodeLoaded();
+			ensureJwtCodeLoaded(selectedApiId || 'django');
 		}
 	}
 
@@ -321,15 +382,38 @@ async function checkUserStatus() {
 						<div class="api-test">
 							<div class="api-header">
 								<h2>🔧 API Test</h2>
-								<p class="api-subtitle">Test Django API with your access token</p>
+								<p class="api-subtitle">Test {selectedApi ? selectedApi.name : 'your API'} with your access token</p>
+							</div>
+
+							<div class="api-selector">
+								<div class="selector-label">Select API:</div>
+								{#if availableApis.length}
+									<div class="selector-chips">
+										{#each availableApis as api}
+											<button
+												class="api-chip"
+												class:active={api.id === selectedApiId}
+												type="button"
+												on:click={() => selectedApiId = api.id}
+											>
+												{api.name}
+											</button>
+										{/each}
+									</div>
+								{:else}
+									<div class="selector-empty">No API endpoints configured.</div>
+								{/if}
 							</div>
 							
 							<div class="api-endpoint-section">
 								<div class="endpoint-label">API Endpoint:</div>
 								<div class="endpoint-display">
 									<span class="endpoint-url">{apiEndpoint}</span>
-									<div class="endpoint-badge">GET</div>
+									<div class="endpoint-badge">{(selectedApi && selectedApi.method) ? selectedApi.method.toUpperCase() : 'GET'}</div>
 								</div>
+								{#if selectedApi && selectedApi.description}
+									<p class="endpoint-description">{selectedApi.description}</p>
+								{/if}
 							</div>
 
 							<div class="api-controls">
@@ -362,7 +446,7 @@ async function checkUserStatus() {
 								<div class="api-response">
 									<div class="response-header">
 										<h3>📋 Response</h3>
-										<div class="success-badge">200 OK</div>
+										<div class="success-badge">{apiStatus || 'Success'}</div>
 									</div>
 									<div class="response-content">
 										<MarkdownViewer source={responseMarkdown} />
@@ -403,19 +487,24 @@ async function checkUserStatus() {
 
 									<div class="jwt-code">
 										<div class="code-header">
-											<h3>🔐 Django JWT Verification</h3>
-											<p class="code-subtitle">Live from <code>django-api/api/authentication.py</code></p>
+											<h3>🔐 {selectedApi ? `${selectedApi.name} JWT Verification` : 'JWT Verification'}</h3>
+											<p class="code-subtitle">
+												Live from <code>{currentJwtFilename}</code>
+												{#if currentJwtLanguageLabel}
+													<span class="language-tag">{currentJwtLanguageLabel}</span>
+												{/if}
+											</p>
 										</div>
 										{#if jwtLoading}
-											<div class="code-status loading">Loading Django JWT code...</div>
+											<div class="code-status loading">Loading {selectedApi ? selectedApi.name : 'JWT'} JWT code...</div>
 										{:else if jwtError}
 											<div class="code-status error">{jwtError}</div>
-										{:else if jwtVerificationMarkdown}
+										{:else if currentJwtMarkdown}
 											<div class="code-block-container">
-												<MarkdownViewer source={jwtVerificationMarkdown} />
+												<MarkdownViewer source={currentJwtMarkdown} />
 											</div>
 										{:else}
-											<div class="code-status empty">No Django JWT code available.</div>
+											<div class="code-status empty">No JWT code available.</div>
 										{/if}
 									</div>
 								</div>
@@ -899,6 +988,59 @@ async function checkUserStatus() {
 		margin-bottom: 1.5rem;
 	}
 
+	.api-selector {
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+		margin-bottom: 1.5rem;
+	}
+
+	.selector-label {
+		font-weight: 600;
+		color: #0d47a1;
+		font-size: 0.9rem;
+		text-transform: uppercase;
+		letter-spacing: 0.5px;
+	}
+
+	.selector-chips {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.5rem;
+	}
+
+	.api-chip {
+		padding: 0.4rem 0.85rem;
+		border-radius: 999px;
+		border: 1px solid #cfe3ff;
+		background: #fff;
+		color: #1565c0;
+		font-weight: 600;
+		cursor: pointer;
+		transition: all 0.2s ease;
+	}
+
+	.api-chip:hover {
+		border-color: #90caf9;
+		box-shadow: 0 2px 8px rgba(13, 71, 161, 0.15);
+	}
+
+	.api-chip.active {
+		background: linear-gradient(90deg, #1976d2, #42a5f5);
+		color: white;
+		border-color: #1976d2;
+		box-shadow: 0 4px 12px rgba(25, 118, 210, 0.35);
+	}
+
+	.selector-empty {
+		padding: 0.75rem 1rem;
+		background: #fff6f0;
+		border: 1px dashed #ffab91;
+		border-radius: 8px;
+		color: #ff7043;
+		font-size: 0.9rem;
+	}
+
 	.endpoint-label {
 		display: block;
 		color: #0d47a1;
@@ -934,6 +1076,13 @@ async function checkUserStatus() {
 		font-weight: 600;
 		font-size: 0.8rem;
 		letter-spacing: 0.5px;
+	}
+
+	.endpoint-description {
+		margin-top: 0.75rem;
+		color: #476184;
+		font-size: 0.9rem;
+		line-height: 1.4;
 	}
 
 	.api-controls {
@@ -1094,6 +1243,19 @@ async function checkUserStatus() {
 		margin: 0;
 		color: #64748b;
 		font-size: 0.9rem;
+	}
+
+	.language-tag {
+		display: inline-block;
+		margin-left: 0.5rem;
+		padding: 0.1rem 0.55rem;
+		background: #e2e8f0;
+		color: #1f2937;
+		border-radius: 999px;
+		font-size: 0.75rem;
+		font-weight: 600;
+		text-transform: uppercase;
+		letter-spacing: 0.5px;
 	}
 
 	.lang-buttons {
