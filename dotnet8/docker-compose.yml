@@ -11,3 +11,9 @@ services:
     volumes:
       # optional: mount source for quick dev iteration
       - ./:/src
+    networks:
+      - customnet
+      
+networks:
+  customnet:
+    external: true

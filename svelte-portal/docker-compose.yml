@@ -7,3 +7,12 @@ services:
       - .env
     environment:
       - NODE_ENV=production
+    networks:
+      - customnet
+networks:
+  customnet:
+    name: customnet
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 192.168.101.0/24

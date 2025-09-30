@@ -12,6 +12,8 @@ services:
       - ./:/app
     depends_on:
       - db
+    networks:
+      - customnet
 
   db:
     image: postgres:15
@@ -21,6 +23,12 @@ services:
       POSTGRES_PASSWORD: changeme
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    networks:
+      - customnet
 
 volumes:
   postgres_data:
+
+networks:
+  customnet:
+    external: true
