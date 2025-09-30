@@ -71,7 +71,7 @@ dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 
 
 const app = express();
-const port = process.env.PORT || 3000;
+const port = 3000;
 
 // Session middleware
 app.use(session({
