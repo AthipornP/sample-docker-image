@@ -13,6 +13,10 @@ import requests
 import json
 import html
 
+import dotenv
+
+dotenv.load_dotenv()
+
 
 def _base64url_encode(data: bytes) -> str:
     return base64.urlsafe_b64encode(data).rstrip(b"=").decode('ascii')
@@ -170,5 +174,5 @@ def private_view(request):
     else:
         access_html = "<p class=\"muted\">No access token present in session.</p>"
 
-    body = f"{style}<div class=\"card\"><h1>Protected page</h1><p>You successfully authenticated via SSO.</p><h3>User claims</h3>{json_html}{access_html}<p><a class=\"btn btn-orange\" href=\"/logout\">Logout</a> <a class=\"btn btn-blue\" style=\"margin-left:12px;\" href=\"/\">Home</a> <a class=\"btn btn-ghost\" style=\"margin-left:12px;\" href=\"http://localhost:3000\">Back to Portal</a></p></div>"
+    body = f"{style}<div class=\"card\"><h1>Protected page</h1><p>You successfully authenticated via SSO.</p><h3>User claims</h3>{json_html}{access_html}<p><a class=\"btn btn-orange\" href=\"/logout\">Logout</a> <a class=\"btn btn-blue\" style=\"margin-left:12px;\" href=\"/\">Home</a> <a class=\"btn btn-ghost\" style=\"margin-left:12px;\" href=\"http://{os.getenv('PORTAL_HOST', 'localhost')}:{os.getenv('PORTAL_PORT', '3000')}\">Back to Portal</a></p></div>"
     return HttpResponse(body)

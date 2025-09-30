@@ -6,6 +6,10 @@ from django.urls import reverse
 from .oidc_views import login_view, callback_view, logout_view, private_view
 import markdown
 import html
+import os
+import dotenv
+
+dotenv.load_dotenv()
 
 
 def index(request):
@@ -45,7 +49,7 @@ def index(request):
         login_url = reverse('login')
         actions = f"<a class=\"btn btn-accent\" href=\"{login_url}\">Login with SSO</a>"
 
-    portal_button = '<a class="btn btn-ghost" href="http://localhost:3000" target="_top">Back to Portal</a>'
+    portal_button = f'<a class="btn btn-ghost" href="http://{os.getenv("PORTAL_HOST", "localhost")}:{os.getenv("PORTAL_PORT", "3000")}" target="_top">Back to Portal</a>'
 
     body = f"{style}<main class='hero'><div class='card'><h1>Customer Portal — Django Sample</h1><p class='lead'>This is a Django sample demonstrating OIDC login and access token display.</p>{html_content}<div class='actions'>{actions}{portal_button}</div><div class='footer'><small>Running in container — use this for development & testing only.</small></div></div></main>"
     return HttpResponse(body)
@@ -70,7 +74,7 @@ def loggedout_view(request):
     """
 
     login_url = reverse('login')
-    body = f"{style}<main class='hero'><div class='card'><h1>Logged out</h1><p class='lead'>You have been successfully logged out.</p><div class='actions'><a class=\"btn btn-accent\" href=\"{login_url}\">Login again</a><a class=\"btn btn-ghost\" href=\"http://localhost:3000\" target=\"_top\">Back to Portal</a></div><div class='footer'><small>Running in container — use this for development & testing only.</small></div></div></main>"
+    body = f"{style}<main class='hero'><div class='card'><h1>Logged out</h1><p class='lead'>You have been successfully logged out.</p><div class='actions'><a class=\"btn btn-accent\" href=\"{login_url}\">Login again</a><a class=\"btn btn-ghost\" href=\"http://{os.getenv('PORTAL_HOST', 'localhost')}:{os.getenv('PORTAL_PORT', '3000')}\" target=\"_top\">Back to Portal</a></div><div class='footer'><small>Running in container — use this for development & testing only.</small></div></div></main>"
     return HttpResponse(body)
 
 

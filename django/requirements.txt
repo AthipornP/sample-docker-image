@@ -3,3 +3,4 @@ gunicorn
 psycopg2-binary
 mozilla-django-oidc>=1.6
 markdown
+dotenv
