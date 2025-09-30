@@ -5,7 +5,9 @@ services:
     build: .
     container_name: django-api
     ports:
-      - "8001:8000"
+      - "${PORT:-8001}:8000"
+    env_file:
+      - .env
     environment:
       - DEBUG=1
       - DJANGO_SETTINGS_MODULE=config.settings

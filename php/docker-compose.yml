@@ -3,7 +3,7 @@ services:
   php-web:
     build: .
     ports:
-      - "8080:80"
+      - "${PORT:-8080}:80"
     env_file: .env
     # Do not bind-mount public/ to allow vendor/ installed during image build to be present
     # If you want live edits, consider copying vendor/ or running composer in a volume-aware workflow
