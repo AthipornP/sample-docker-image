@@ -22,6 +22,9 @@
 	let showCode = false;
 	let selectedLang = 'javascript';
 	let codeByLang = {};
+	let jwtVerificationMarkdown = '';
+	let jwtLoading = false;
+	let jwtError = null;
 
 
 
@@ -260,6 +263,32 @@ async function checkUserStatus() {
 		}
 	}
 
+	async function ensureJwtCodeLoaded() {
+		if (jwtVerificationMarkdown || jwtLoading) return;
+		jwtLoading = true;
+		jwtError = null;
+		try {
+			const res = await fetch('/api/code/django-jwt');
+			if (!res.ok) {
+				throw new Error(`Failed to load code (HTTP ${res.status})`);
+			}
+			const data = await res.json();
+			const code = (data.code || '').trim();
+			jwtVerificationMarkdown = code ? '```python\n' + code + '\n```' : '';
+		} catch (e) {
+			jwtError = e && e.message ? e.message : String(e);
+		} finally {
+			jwtLoading = false;
+		}
+	}
+
+	function toggleCodePanel() {
+		showCode = !showCode;
+		if (showCode) {
+			ensureJwtCodeLoaded();
+		}
+	}
+
 	function selectLang(lang) {
 		selectedLang = lang;
 	}
@@ -313,7 +342,7 @@ async function checkUserStatus() {
 										Call API
 									{/if}
 								</button>
-								<button class="show-code-button" on:click={() => showCode = !showCode}>
+								<button class="show-code-button" on:click={toggleCodePanel}>
 									<span class="code-icon">{showCode ? '🙈' : '💻'}</span>
 									{showCode ? 'Hide Code' : 'Show Code'}
 								</button>
@@ -370,6 +399,24 @@ async function checkUserStatus() {
 									
 									<div class="code-block-container">
 										<MarkdownViewer source={codeByLang[selectedLang]} />
+									</div>
+
+									<div class="jwt-code">
+										<div class="code-header">
+											<h3>🔐 Django JWT Verification</h3>
+											<p class="code-subtitle">Live from <code>django-api/api/authentication.py</code></p>
+										</div>
+										{#if jwtLoading}
+											<div class="code-status loading">Loading Django JWT code...</div>
+										{:else if jwtError}
+											<div class="code-status error">{jwtError}</div>
+										{:else if jwtVerificationMarkdown}
+											<div class="code-block-container">
+												<MarkdownViewer source={jwtVerificationMarkdown} />
+											</div>
+										{:else}
+											<div class="code-status empty">No Django JWT code available.</div>
+										{/if}
 									</div>
 								</div>
 							{/if}
@@ -1102,6 +1149,46 @@ async function checkUserStatus() {
 		border: 1px solid #4a5568;
 		overflow: hidden;
 		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+	}
+
+	.jwt-code {
+		margin-top: 1.5rem;
+		background: #f8fafc;
+		border: 2px solid #e0e7ff;
+		border-radius: 12px;
+		overflow: hidden;
+	}
+
+	.jwt-code .code-header {
+		background: linear-gradient(90deg, #eff6ff, #dbeafe);
+		border-bottom: 1px solid #cbd5f5;
+	}
+
+	.code-status {
+		padding: 1rem 1.5rem;
+		font-size: 0.95rem;
+	}
+
+	.code-status.loading {
+		color: #475569;
+	}
+
+	.code-status.error {
+		color: #b91c1c;
+		background: linear-gradient(90deg, #fee2e2, #fecaca);
+		font-weight: 600;
+	}
+
+	.code-status.empty {
+		color: #64748b;
+		background: #f8fafc;
+	}
+
+	.jwt-code .code-block-container {
+		border-radius: 0;
+		border-left: none;
+		border-right: none;
+		border-bottom: none;
 	}
 
 	/* Force override Prism's default styles with highest priority */
