@@ -1,4 +1,8 @@
 <?php
+require_once __DIR__.'/helpers.php';
+
+$portalUrl = portal_url();
+
 $html = "<!doctype html>
 <html>
 <head>
@@ -27,7 +31,7 @@ $html = "<!doctype html>
             <p class='lead'>You have been successfully logged out.</p>
             <div class='actions'>
                 <a class='btn btn-accent' href='/login.php'>Login again</a>
-                <a class='btn btn-ghost' href='http://localhost:3000' target='_top'>Back to Portal</a>
+                <a class='btn btn-ghost' href='{$portalUrl}' target='_top'>Back to Portal</a>
             </div>
             <div class='footer'><small>Running in container — use this for development & testing only.</small></div>
         </div>

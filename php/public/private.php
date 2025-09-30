@@ -1,5 +1,6 @@
 <?php
 require __DIR__.'/vendor/autoload.php';
+require_once __DIR__.'/helpers.php';
 session_start();
 
 if (!isset($_SESSION['authenticated']) || $_SESSION['authenticated'] !== true) {
@@ -9,6 +10,7 @@ if (!isset($_SESSION['authenticated']) || $_SESSION['authenticated'] !== true) {
 
 $access = $_SESSION['access_token'] ?? 'No access token available';
 $userinfo = $_SESSION['userinfo'] ?? [];
+$portalUrl = portal_url();
 
 $claims = json_encode($userinfo, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
 $escaped = htmlspecialchars($claims, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
@@ -37,7 +39,7 @@ $html = "<!doctype html>
     <pre><code>{$escaped}</code></pre>
     <h3>Access token</h3>
     <div class='token'><code>{$tokenEscaped}</code></div>
-    <p style='margin-top:12px;'><a class='btn home' href='/'>Home</a><a class='btn logout' href='/logout.php'>Logout</a><a class='btn portal' href='http://localhost:3000' target='_top'>Back to Portal</a></p>
+    <p style='margin-top:12px;'><a class='btn home' href='/'>Home</a><a class='btn logout' href='/logout.php'>Logout</a><a class='btn portal' href='{$portalUrl}' target='_top'>Back to Portal</a></p>
 </body>
 </html>";
 

@@ -1,13 +1,15 @@
 <?php
 require __DIR__.'/vendor/autoload.php';
+require_once __DIR__.'/helpers.php';
 
 use Jumbojett\OpenIDConnectClient;
 
 session_start();
 
 $logged_in = isset($_SESSION['authenticated']) && $_SESSION['authenticated'] === true;
+$portalUrl = portal_url();
 
-function render($logged_in) {
+function render($logged_in, $portalUrl) {
     $actions = '';
     if ($logged_in) {
         $actions = '<a class="btn btn-primary" href="/private.php">Private</a> <a class="btn btn-accent" href="/logout.php">Logout</a>';
@@ -43,7 +45,7 @@ function render($logged_in) {
             <p class='lead'>This is a minimal PHP sample demonstrating OIDC login and access token display.</p>
             <div class='actions'>
                 $actions
-                <a class='btn btn-ghost' href='http://localhost:3000' target='_top'>Back to Portal</a>
+                <a class='btn btn-ghost' href='{$portalUrl}' target='_top'>Back to Portal</a>
             </div>
             <div class='footer'><small>Running in container — use this for development & testing only.</small></div>
         </div>
@@ -54,4 +56,4 @@ function render($logged_in) {
     echo $html;
 }
 
-render($logged_in);
+render($logged_in, $portalUrl);

@@ -38,9 +38,9 @@ builder.Services.AddAuthentication(options =>
 		options.ClientId = oauthClientId;
 		options.ClientSecret = oauthClientSecret;
 		options.ResponseType = OpenIdConnectResponseType.Code;
-	// Avoid persisting tokens into the authentication cookie (this can make cookies very large
-	// and cause 'Request Header Fields Too Large' errors when multiple apps share the same domain)
-	options.SaveTokens = false;
+		// Avoid persisting tokens into the authentication cookie (this can make cookies very large
+		// and cause 'Request Header Fields Too Large' errors when multiple apps share the same domain)
+		options.SaveTokens = false;
 		options.GetClaimsFromUserInfoEndpoint = true;
 		options.Scope.Clear();
 		options.Scope.Add("openid");
