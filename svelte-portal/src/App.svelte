@@ -89,6 +89,115 @@
 		window.location.href = '/auth/logout';
 	}
 
+	// Authentication code examples - tab state
+	let activeTab = 1;
+	
+	// Authentication code examples using real server.js implementation
+	const loginExample = `\`\`\`javascript
+// Step 1: Login Endpoint - เริ่มกระบวนการ OIDC Authentication
+app.get('/auth/login', async (req, res) => {
+  try {
+    const meta = await discoverMetadata();
+    const code_verifier = generateCodeVerifier();
+    const code_challenge = generateCodeChallenge(code_verifier);
+    req.session.code_verifier = code_verifier;
+    const params = new URLSearchParams({
+      client_id: clientId,
+      response_type: 'code',
+      scope: 'openid profile email',
+      redirect_uri: redirectUri,
+      code_challenge: code_challenge,
+      code_challenge_method: 'S256',
+    });
+    const authUrl = meta.authorization_endpoint + '?' + params.toString();
+    return res.redirect(authUrl);
+  } catch (err) {
+    console.error('Login error:', err && err.message ? err.message : err);
+    return res.status(500).send('Login error: ' + (err.message || 'unknown'));
+  }
+});
+\`\`\``;
+
+	const callbackExample = `\`\`\`javascript
+// Step 2: Callback Endpoint - รับ authorization code และแลกเป็น access token
+app.get('/auth/callback', async (req, res) => {
+  try {
+    const meta = await discoverMetadata();
+    const code = req.query.code;
+    const code_verifier = req.session?.code_verifier;
+    if (!code) return res.status(400).send('Missing code');
+    if (!code_verifier) return res.status(400).send('Missing code_verifier in session');
+
+    const tokenRes = await fetch(meta.token_endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        grant_type: 'authorization_code',
+        code: code,
+        redirect_uri: redirectUri,
+        client_id: clientId,
+        client_secret: clientSecret || '',
+        code_verifier: code_verifier,
+      }),
+    });
+    if (!tokenRes.ok) {
+      const t = await tokenRes.text();
+      console.error('Token endpoint error:', t);
+      return res.status(500).send('Token exchange failed');
+    }
+    const tokenJson = await tokenRes.json();
+    req.session.tokenSet = tokenJson;
+    const claims = tokenJson.id_token ? decodeJwt(tokenJson.id_token) : tokenJson;
+    req.session.claims = claims;
+    return res.redirect('/');
+  } catch (err) {
+    console.error('Callback error:', err && err.message ? err.message : err);
+    return res.status(500).send('OAuth callback error: ' + (err.message || 'unknown'));
+  }
+});
+\`\`\``;
+
+	const apiCallExample = `\`\`\`javascript
+// Step 3: API Endpoint - ส่งข้อมูล user กลับไปให้ frontend
+app.get('/api/user', (req, res) => {
+  if (req.session && req.session.claims) {
+    // User login แล้ว - ส่งข้อมูล claims และ access token
+    const tokenSet = req.session.tokenSet || {};
+    res.json({ 
+      authenticated: true, 
+      claims: req.session.claims, 
+      access_token: tokenSet.access_token || null 
+    });
+  } else {
+    res.json({ authenticated: false });
+  }
+});
+
+// การเรียกใช้ API จาก frontend
+async function checkUserStatus() {
+  try {
+    const response = await fetch('/api/user');
+    const data = await response.json();
+    
+    if (data.authenticated) {
+      console.log('User claims:', data.claims);
+      console.log('Access token:', data.access_token);
+      return data;
+    } else {
+      console.log('User not authenticated');
+      return null;
+    }
+  } catch (error) {
+    console.error('API call failed:', error);
+    throw error;
+  }
+}
+\`\`\``;
+
+	function switchTab(tabNumber) {
+		activeTab = tabNumber;
+	}
+
 	function openApp(url) {
 		// navigate in the same tab to the app
 		window.location.href = url;
@@ -267,7 +376,56 @@
 						</div>
 					{/if}
 				{:else}
-						<button class="auth-button" on:click={login}>Login with SSO</button>
+					<!-- Authentication Code Examples -->
+					<div class="auth-examples">
+						<h3>🔐 Authentication Code Examples</h3>
+						<p>Learn how to implement OIDC authentication in your application:</p>
+						
+						<div class="example-tabs">
+							<button 
+								class="tab-button" 
+								class:active={activeTab === 1}
+								on:click={() => switchTab(1)}
+							>
+								Step 1: Login
+							</button>
+							<button 
+								class="tab-button" 
+								class:active={activeTab === 2}
+								on:click={() => switchTab(2)}
+							>
+								Step 2: Callback
+							</button>
+							<button 
+								class="tab-button" 
+								class:active={activeTab === 3}
+								on:click={() => switchTab(3)}
+							>
+								Step 3: API Call
+							</button>
+						</div>
+						
+						<div class="example-content">
+							{#if activeTab === 1}
+								<div class="example-step">
+									<h4>1. Login Endpoint - เริ่มกระบวนการ OIDC Authentication</h4>
+									<MarkdownViewer source={loginExample} />
+								</div>
+							{:else if activeTab === 2}
+								<div class="example-step">
+									<h4>2. Callback Endpoint - รับ authorization code และแลกเป็น access token</h4>
+									<MarkdownViewer source={callbackExample} />
+								</div>
+							{:else if activeTab === 3}
+								<div class="example-step">
+									<h4>3. API Endpoint - ส่งข้อมูล user กลับไป frontend</h4>
+									<MarkdownViewer source={apiCallExample} />
+								</div>
+							{/if}
+						</div>
+					</div>
+					
+					<button class="auth-button" on:click={login}>Login with SSO</button>
 					{/if}
 			{/if}
 		</div>
@@ -425,6 +583,89 @@
 	.card button:hover {
 		background: linear-gradient(90deg, #1565c0, #2196f3);
 		transform: translateY(-1px);
+	}
+
+	/* Authentication Examples Section */
+	.auth-examples {
+		background: rgba(255, 255, 255, 0.1);
+		border-radius: 12px;
+		padding: 2rem;
+		margin-bottom: 2rem;
+		backdrop-filter: blur(10px);
+		border: 1px solid rgba(255, 255, 255, 0.2);
+	}
+
+	.auth-examples h3 {
+		margin: 0 0 1rem 0;
+		color: #fff;
+		font-size: 1.5rem;
+	}
+
+	.auth-examples p {
+		margin: 0 0 1.5rem 0;
+		color: rgba(255, 255, 255, 0.9);
+		font-size: 1rem;
+	}
+
+	.example-tabs {
+		display: flex;
+		gap: 0.5rem;
+		margin-bottom: 1.5rem;
+		flex-wrap: wrap;
+	}
+
+	.tab-button {
+		background: rgba(255, 255, 255, 0.1);
+		color: rgba(255, 255, 255, 0.8);
+		border: 1px solid rgba(255, 255, 255, 0.2);
+		padding: 0.5rem 1rem;
+		border-radius: 6px;
+		cursor: pointer;
+		transition: all 0.3s ease;
+		font-size: 0.9rem;
+	}
+
+	.tab-button.active,
+	.tab-button:hover {
+		background: rgba(255, 255, 255, 0.2);
+		color: #fff;
+		border-color: rgba(255, 255, 255, 0.4);
+	}
+
+	.example-content {
+		background: rgba(0, 0, 0, 0.2);
+		border-radius: 8px;
+		padding: 1rem;
+		text-align: left;
+	}
+
+	.example-step h4 {
+		margin: 0 0 1rem 0;
+		color: #fff;
+		font-size: 1.1rem;
+		text-align: left;
+	}
+
+	/* Code block styling inside auth examples */
+	.auth-examples .markdown-viewer {
+		text-align: left;
+	}
+
+	.auth-examples .markdown-viewer pre {
+		margin: 0;
+		text-align: left;
+		overflow-x: auto;
+	}
+
+	.auth-examples .markdown-viewer code {
+		text-align: left;
+		font-family: 'Courier New', monospace;
+		font-size: 0.9rem;
+		line-height: 1.4;
+	}
+
+	.auth-button {
+		margin-top: 1rem;
 	}
 
 	/* prominent orange auth buttons for Login / Logout */
