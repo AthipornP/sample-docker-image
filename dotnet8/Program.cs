@@ -13,6 +13,9 @@ var oauthIssuer = builder.Configuration["OAUTH_ISSUER"];
 var oauthClientId = builder.Configuration["OAUTH_CLIENT_ID"];
 var oauthClientSecret = builder.Configuration["OAUTH_CLIENT_SECRET"];
 var oauthRedirect = builder.Configuration["OAUTH_REDIRECT_URI"];
+var portalHost = builder.Configuration["PORTAL_HOST"] ?? builder.Configuration["HOST"] ?? "localhost";
+var portalPort = builder.Configuration["PORTAL_PORT"] ?? "3000";
+var portalUrl = $"http://{portalHost}{(string.IsNullOrEmpty(portalPort) || portalPort == "80" ? string.Empty : ":" + portalPort)}";
 
 // Configure authentication: cookie + OpenID Connect
 builder.Services.AddAuthentication(options =>
@@ -112,7 +115,7 @@ app.MapGet("/", (HttpContext ctx) =>
 			<p class='lead'>This is a minimal sample app demonstrating OIDC login with PKCE and access token display.</p>
 			<div class='actions'>
 			{loginBtn}
-			<a class='btn btn-ghost' href='http://localhost:3000' target='_top'>Back to Portal</a>
+			<a class='btn btn-ghost' href='{portalUrl}' target='_top'>Back to Portal</a>
 			</div>
 			<div class='footer'><small>Running in container — use this for development & testing only.</small></div>
 		</div>
@@ -186,7 +189,7 @@ app.MapGet("/private", async (HttpContext ctx) =>
 		<pre style='background:#0f1724;color:#e6edf3;padding:12px;border-radius:8px;overflow:auto'><code>{System.Net.WebUtility.HtmlEncode(claimsJson)}</code></pre>
 		<h3>Access token</h3>
 		<div style='background:#071226;color:#dbeefd;padding:12px;border-radius:8px;overflow:auto;white-space:pre-wrap;word-break:break-word'><code>{System.Net.WebUtility.HtmlEncode(accessToken)}</code></div>
-	<p style='margin-top:12px;'><a href='/' style='display:inline-block;padding:8px 12px;background:#1976d2;color:#fff;border-radius:6px;text-decoration:none;font-weight:600;margin-right:8px;'>Home</a><a href='/auth/logout' style='display:inline-block;padding:8px 12px;background:#ff7a18;color:#fff;border-radius:6px;text-decoration:none;font-weight:700;margin-right:8px;'>Logout</a><a href='http://localhost:3000' style='display:inline-block;padding:8px 12px;background:#6b7280;color:#fff;border-radius:6px;text-decoration:none;font-weight:600;'>Back to Portal</a></p>
+	<p style='margin-top:12px;'><a href='/' style='display:inline-block;padding:8px 12px;background:#1976d2;color:#fff;border-radius:6px;text-decoration:none;font-weight:600;margin-right:8px;'>Home</a><a href='/auth/logout' style='display:inline-block;padding:8px 12px;background:#ff7a18;color:#fff;border-radius:6px;text-decoration:none;font-weight:700;margin-right:8px;'>Logout</a><a href='{portalUrl}' style='display:inline-block;padding:8px 12px;background:#6b7280;color:#fff;border-radius:6px;text-decoration:none;font-weight:600;'>Back to Portal</a></p>
 	</div>";
 
 	return Results.Content(html, "text/html");
