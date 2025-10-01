@@ -277,7 +277,7 @@ async function checkUserStatus() {
     %% Portal launches apps
     P0 -->|"Navigate"| SrvHub
     P0 -->|"API tester"| ApiHub
-    P0 -.->|"OIDC docs"| KC
+    %% P0 -.->|"OIDC docs"| KC
     SrvHub --> N1
     SrvHub --> D1
     SrvHub --> P1
@@ -289,6 +289,7 @@ async function checkUserStatus() {
     N1 --> SrvOIDC
     D1 --> SrvOIDC
     P1 --> SrvOIDC
+	P0 --> SrvOIDC
     SrvOIDC -->|"OIDC authentication"| KC
     KC -.->|"Tokens"| SrvOIDC
     N2 --> ApiOIDC
