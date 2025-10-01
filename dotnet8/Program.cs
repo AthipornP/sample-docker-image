@@ -1,5 +1,7 @@
-using System.Security.Claims;
+using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
@@ -17,6 +19,7 @@ var portalHost = builder.Configuration["PORTAL_HOST"] ?? builder.Configuration["
 var portalPort = builder.Configuration["PORTAL_PORT"] ?? "3000";
 var portalUrl = $"http://{portalHost}{(string.IsNullOrEmpty(portalPort) || portalPort == "80" ? string.Empty : ":" + portalPort)}";
 
+// <oidc-snippet>
 // Configure authentication: cookie + OpenID Connect
 builder.Services.AddAuthentication(options =>
 {
@@ -81,49 +84,6 @@ var app = builder.Build();
 app.UseAuthentication();
 app.UseAuthorization();
 
-// Home page: shows Login button when not authenticated
-app.MapGet("/", (HttpContext ctx) =>
-{
-	var isAuth = ctx.User?.Identity?.IsAuthenticated ?? false;
-		var loginBtn = isAuth ? "<a href='/private' class='btn btn-primary'>Private</a><a href='/auth/logout' class='btn btn-accent'>Logout</a>" : "<a href='/auth/login' class='btn btn-accent'>Login with SSO</a>";
-		var body = $@"<!doctype html>
-<html>
-<head>
-	<meta charset='utf-8' />
-	<meta name='viewport' content='width=device-width, initial-scale=1' />
-	<title>.NET 8 Sample App</title>
-	<style>
-		:root {{ --bg:#f6f8fa; --card:#ffffff; --accent:#1976d2; --orange:#ff7a18; --muted:#6b7280 }}
-		body {{ margin:0;font-family:Inter,system-ui,-apple-system,'Segoe UI',Roboto,Helvetica,Arial;background:var(--bg);color:#0f1724 }}
-		.hero {{ display:flex;align-items:center;justify-content:center;min-height:60vh;padding:3rem 1rem }}
-		.card {{ background:var(--card);padding:2rem;border-radius:12px;box-shadow:0 12px 40px rgba(15,23,42,0.08);max-width:900px;width:100%;text-align:center }}
-		h1 {{ margin:0;font-size:2.25rem;color:var(--accent) }}
-		p.lead {{ color:#334155;margin:0.5rem 0 1.25rem }}
-		.actions {{ display:flex;gap:0.75rem;justify-content:center;flex-wrap:wrap;margin-top:1rem }}
-		.btn {{ display:inline-flex;align-items:center;justify-content:center;padding:10px 16px;border-radius:8px;text-decoration:none;color:#fff;font-weight:700;min-width:160px }}
-		.btn-primary {{ background:linear-gradient(90deg,var(--accent),#42a5f5) }}
-		.btn-accent {{ background:linear-gradient(90deg,#ff8a00,var(--orange)) }}
-		.btn-ghost {{ background:#e2e8f0;color:#0f1724;font-weight:600;border-radius:8px;padding:10px 16px }}
-		.footer {{ text-align:center;margin-top:1.25rem;color:var(--muted) }}
-		a.portal-link {{ display:inline-block;margin-top:0.5rem;padding:8px 12px;background:var(--muted);color:#fff;border-radius:8px;text-decoration:none }}
-	</style>
-</head>
-<body>
-	<main class='hero'>
-		<div class='card'>
-			<h1>Customer Portal — .NET Sample</h1>
-			<p class='lead'>This is a minimal sample app demonstrating OIDC login with PKCE and access token display.</p>
-			<div class='actions'>
-			{loginBtn}
-			<a class='btn btn-ghost' href='{portalUrl}' target='_top'>Back to Portal</a>
-			</div>
-			<div class='footer'><small>Running in container — use this for development & testing only.</small></div>
-		</div>
-	</main>
-</body>
-</html>";
-	return Results.Content(body, "text/html");
-});
 
 // Login endpoint: trigger OIDC challenge
 app.MapGet("/auth/login", async (HttpContext ctx) =>
@@ -147,6 +107,91 @@ app.MapGet("/auth/logout", async (HttpContext ctx) =>
 
 	await ctx.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
 	return Results.Redirect("/");
+});
+
+// </oidc-snippet>
+
+var oidcCodeSnippet = LoadOidcSnippet();
+var escapedOidcCode = System.Net.WebUtility.HtmlEncode(oidcCodeSnippet);
+var codeSectionHtml = $@"<div id='oidc-code-wrapper' class='code-wrapper' aria-hidden='true' style='display:none;'>
+		<h3>OIDC integration code</h3>
+		<pre><code>{escapedOidcCode}</code></pre>
+		<p class='muted'>This snippet is loaded directly from <code>Program.cs</code> at runtime.</p>
+	</div>";
+var toggleScript = @"<script>
+(function () {
+	const btn = document.getElementById('show-code-btn');
+	const wrapper = document.getElementById('oidc-code-wrapper');
+	if (!btn || !wrapper) { return; }
+	btn.addEventListener('click', function () {
+		const isHidden = wrapper.style.display === 'none' || wrapper.getAttribute('aria-hidden') === 'true';
+		wrapper.style.display = isHidden ? 'block' : 'none';
+		wrapper.setAttribute('aria-hidden', isHidden ? 'false' : 'true');
+		btn.textContent = isHidden ? 'Hide OIDC Code' : 'Show OIDC Code';
+	});
+})();
+</script>";
+
+// Home page: shows Login button when not authenticated
+app.MapGet("/", (HttpContext ctx) =>
+{
+	var isAuth = ctx.User?.Identity?.IsAuthenticated ?? false;
+	var actions = new List<string>();
+	if (isAuth)
+	{
+		actions.Add("<a href='/private' class='btn btn-primary'>Private</a>");
+		actions.Add("<a href='/auth/logout' class='btn btn-accent'>Logout</a>");
+	}
+	else
+	{
+		actions.Add("<a href='/auth/login' class='btn btn-accent'>Login with SSO</a>");
+	}
+	actions.Add($"<a class='btn btn-ghost' href='{portalUrl}' target='_top'>Back to Portal</a>");
+	actions.Add("<button class='btn btn-ghost btn-code' type='button' id='show-code-btn'>Show OIDC Code</button>");
+
+	var actionsHtml = string.Join("\n                ", actions);
+	var body = $@"<!doctype html>
+<html>
+<head>
+	<meta charset='utf-8' />
+	<meta name='viewport' content='width=device-width, initial-scale=1' />
+	<title>.NET 8 Sample App</title>
+	<style>
+		:root {{ --bg:#f6f8fa; --card:#ffffff; --accent:#1976d2; --orange:#ff7a18; --muted:#6b7280 }}
+		body {{ margin:0;font-family:Inter,system-ui,-apple-system,'Segoe UI',Roboto,Helvetica,Arial;background:var(--bg);color:#0f1724 }}
+		.hero {{ display:flex;align-items:center;justify-content:center;min-height:60vh;padding:3rem 1rem }}
+		.card {{ background:var(--card);padding:2rem;border-radius:12px;box-shadow:0 12px 40px rgba(15,23,42,0.08);max-width:900px;width:100%;text-align:center }}
+		h1 {{ margin:0;font-size:2.25rem;color:var(--accent) }}
+		p.lead {{ color:#334155;margin:0.5rem 0 1.25rem }}
+		.actions {{ display:flex;gap:0.75rem;justify-content:center;flex-wrap:wrap;margin-top:1rem }}
+		.btn {{ display:inline-flex;align-items:center;justify-content:center;padding:10px 16px;border-radius:8px;text-decoration:none;color:#fff;font-weight:700;min-width:160px;cursor:pointer;border:none }}
+		button.btn {{ font:inherit }}
+		.btn-primary {{ background:linear-gradient(90deg,var(--accent),#42a5f5) }}
+		.btn-accent {{ background:linear-gradient(90deg,#ff8a00,var(--orange)) }}
+		.btn-ghost {{ background:#e2e8f0;color:#0f1724;font-weight:600;border-radius:8px;padding:10px 16px }}
+		.btn-code {{ min-width:200px }}
+		.code-wrapper {{ margin-top:1.5rem;text-align:left }}
+		.code-wrapper pre {{ background:#0f1724;color:#e6edf3;padding:16px;border-radius:12px;overflow:auto;font-size:0.95rem;line-height:1.5 }}
+		.muted {{ color:var(--muted) }}
+		.footer {{ text-align:center;margin-top:1.25rem;color:var(--muted) }}
+	</style>
+</head>
+<body>
+	<main class='hero'>
+		<div class='card'>
+			<h1>Customer Portal — .NET Sample</h1>
+			<p class='lead'>This is a minimal sample app demonstrating OIDC login and access token display.</p>
+			<div class='actions'>
+				{actionsHtml}
+			</div>
+			{codeSectionHtml}
+			<div class='footer'><small>Running in container — use this for development & testing only.</small></div>
+		</div>
+	</main>
+	{toggleScript}
+</body>
+</html>";
+	return Results.Content(body, "text/html");
 });
 
 // Protected private page
@@ -196,3 +241,55 @@ app.MapGet("/private", async (HttpContext ctx) =>
 });
 
 app.Run();
+
+static string LoadOidcSnippet()
+{
+	const string fallback = "// Unable to load OIDC code snippet at runtime.";
+	var candidates = new[]
+	{
+		Path.Combine(AppContext.BaseDirectory, "Program.cs"),
+		Path.Combine(AppContext.BaseDirectory, "..", "Program.cs"),
+		Path.Combine(AppContext.BaseDirectory, "..", "..", "Program.cs")
+	};
+
+	foreach (var path in candidates)
+	{
+		try
+		{
+			if (!File.Exists(path))
+			{
+				continue;
+			}
+
+			var source = File.ReadAllText(path);
+			var snippet = ExtractOidcSnippet(source);
+			if (!string.IsNullOrWhiteSpace(snippet))
+			{
+				return snippet.Trim();
+			}
+		}
+		catch
+		{
+			// ignored - we'll fall back to the default string
+		}
+	}
+
+	return fallback;
+}
+
+static string ExtractOidcSnippet(string source)
+{
+	const string start = "// <oidc-snippet>";
+	const string end = "// </oidc-snippet>";
+	var startIndex = source.IndexOf(start, StringComparison.Ordinal);
+	var endIndex = source.IndexOf(end, StringComparison.Ordinal);
+
+	if (startIndex >= 0 && endIndex > startIndex)
+	{
+		var contentStart = startIndex + start.Length;
+		var length = endIndex - contentStart;
+		return source.Substring(contentStart, length);
+	}
+
+	return string.Empty;
+}
