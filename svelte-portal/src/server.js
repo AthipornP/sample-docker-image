@@ -359,8 +359,12 @@ require __DIR__ . '/../vendor/autoload.php';
 use Firebase\\JWT\\JWT;
 use Firebase\\JWT\\JWK;
 
-// ฟังก์ชันนี้ใช้ตรวจสอบ JWT ที่ Keycloak ออกให้
-function verify_jwt(string $token): array
+const DEFAULT_JWKS_CACHE_SECONDS = 3600;
+
+/**
+ * ดึง JWKS จาก Keycloak แล้ว cache ไว้ในหน่วยความจำเพื่อลดการเรียกซ้ำ
+ */
+function load_jwks(): array
 {
   static $cachedJwks = null;
   static $cachedAt = 0;
@@ -370,52 +374,62 @@ function verify_jwt(string $token): array
     throw new RuntimeException('KEYCLOAK_CERT_URL environment variable is required.');
   }
 
-  $cacheSeconds = (int) ($_ENV['KEYCLOAK_JWKS_CACHE_SECONDS'] ?? 3600);
+  $cacheSeconds = (int) ($_ENV['KEYCLOAK_JWKS_CACHE_SECONDS'] ?? DEFAULT_JWKS_CACHE_SECONDS);
 
-  // ดึง JWKS จาก Keycloak แล้ว cache ไว้เพื่อลดการเรียกซ้ำ
-  if ($cachedJwks === null || (time() - $cachedAt) >= $cacheSeconds) {
-    $client = curl_init($jwksUrl);
-    curl_setopt_array($client, [
-      CURLOPT_RETURNTRANSFER => true,
-      CURLOPT_TIMEOUT => 10,
-      CURLOPT_FOLLOWLOCATION => true,
-      CURLOPT_SSL_VERIFYPEER => false,
-      CURLOPT_SSL_VERIFYHOST => false,
-    ]);
-
-    $response = curl_exec($client);
-    if ($response === false) {
-      $error = curl_error($client);
-      curl_close($client);
-      throw new RuntimeException('Failed to fetch JWKS: ' . $error);
-    }
-
-    $status = curl_getinfo($client, CURLINFO_RESPONSE_CODE);
-    curl_close($client);
-
-    if ($status < 200 || $status >= 300) {
-      throw new RuntimeException('Failed to fetch JWKS: HTTP ' . $status);
-    }
-
-    $jwks = json_decode($response, true);
-    if (!is_array($jwks) || !isset($jwks['keys'])) {
-      throw new RuntimeException('Invalid JWKS payload.');
-    }
-
-    $cachedJwks = $jwks;
-    $cachedAt = time();
+  if ($cachedJwks !== null && (time() - $cachedAt) < $cacheSeconds) {
+    return $cachedJwks;
   }
 
-  // แปลง JWKS เป็น key สำหรับ firebase/php-jwt (รองรับ RS256)
-  $keys = JWK::parseKeySet($cachedJwks, true);
+  $client = curl_init($jwksUrl);
+  curl_setopt_array($client, [
+    CURLOPT_RETURNTRANSFER => true,
+    CURLOPT_TIMEOUT => 10,
+    CURLOPT_FOLLOWLOCATION => true,
+    CURLOPT_SSL_VERIFYPEER => false,
+    CURLOPT_SSL_VERIFYHOST => false,
+  ]);
 
-  // เผื่อเวลา clock skew เพื่อไม่ให้ token ที่เพิ่งออกใหม่ถูกปฏิเสธ
+  $response = curl_exec($client);
+  if ($response === false) {
+    $error = curl_error($client);
+    curl_close($client);
+    throw new RuntimeException('Failed to fetch JWKS: ' . $error);
+  }
+
+  $status = curl_getinfo($client, CURLINFO_RESPONSE_CODE);
+  curl_close($client);
+
+  if ($status < 200 || $status >= 300) {
+    throw new RuntimeException('Failed to fetch JWKS: HTTP ' . $status);
+  }
+
+  $jwks = json_decode($response, true);
+  if (!is_array($jwks) || !isset($jwks['keys'])) {
+    throw new RuntimeException('Invalid JWKS payload.');
+  }
+
+  $cachedJwks = $jwks;
+  $cachedAt = time();
+
+  return $cachedJwks;
+}
+
+/**
+ * ตรวจสอบความถูกต้องของ JWT และคืน payload กลับมา
+ */
+function verify_jwt(string $token): array
+{
+  $jwks = load_jwks();
+
+  // แปลง JWKS ให้กลายเป็น key ที่ firebase/php-jwt เข้าใจได้ (ปล่อยให้เลือกอัลกอริทึมจาก JWKS)
+  $keys = JWK::parseKeySet($jwks);
+
+  // ปรับ leeway เล็กน้อยสำหรับกรณีเวลาคลาดเคลื่อน
   JWT::$leeway = 60;
 
   $decoded = JWT::decode($token, $keys);
   $payload = json_decode(json_encode($decoded, JSON_THROW_ON_ERROR), true, 512, JSON_THROW_ON_ERROR);
 
-  // ตรวจสอบ issuer / audience ให้ตรงตาม .env
   $expectedIssuer = $_ENV['KEYCLOAK_ISSUER'] ?? '';
   if ($expectedIssuer !== '' && ($payload['iss'] ?? null) !== $expectedIssuer) {
     throw new UnexpectedValueException('Invalid token issuer.');
