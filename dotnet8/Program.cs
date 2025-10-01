@@ -33,7 +33,8 @@ builder.Services.AddAuthentication(options =>
 		// Keep the cookie on the app root path; you can further scope this if you host under a sub-path
 		options.Cookie.Path = "/";
 		options.Cookie.SameSite = Microsoft.AspNetCore.Http.SameSiteMode.Lax;
-		// Consider setting SecurePolicy and other attributes in production
+		options.Cookie.HttpOnly = true;
+		// For HTTP development - use Lax instead of None (None requires Secure=true which needs HTTPS)
 	})
 	.AddOpenIdConnect(OpenIdConnectDefaults.AuthenticationScheme, options =>
 	{
@@ -41,6 +42,7 @@ builder.Services.AddAuthentication(options =>
 		options.ClientId = oauthClientId;
 		options.ClientSecret = oauthClientSecret;
 		options.ResponseType = OpenIdConnectResponseType.Code;
+		options.ResponseMode = "query";
 		// Avoid persisting tokens into the authentication cookie (this can make cookies very large
 		// and cause 'Request Header Fields Too Large' errors when multiple apps share the same domain)
 		options.SaveTokens = false;
@@ -49,6 +51,17 @@ builder.Services.AddAuthentication(options =>
 		options.Scope.Add("openid");
 		options.Scope.Add("profile");
 		options.Scope.Add("email");
+		
+		// Allow HTTP redirect URIs for development (disable HTTPS requirement)
+		options.RequireHttpsMetadata = false;
+		
+		// Configure correlation cookie to work in HTTP context (use Lax for HTTP compatibility)
+		options.NonceCookie.SameSite = Microsoft.AspNetCore.Http.SameSiteMode.Lax;
+		options.NonceCookie.HttpOnly = true;
+		options.NonceCookie.SecurePolicy = Microsoft.AspNetCore.Http.CookieSecurePolicy.SameAsRequest;
+		options.CorrelationCookie.SameSite = Microsoft.AspNetCore.Http.SameSiteMode.Lax;
+		options.CorrelationCookie.HttpOnly = true;
+		options.CorrelationCookie.SecurePolicy = Microsoft.AspNetCore.Http.CookieSecurePolicy.SameAsRequest;
 
 		// Store access token server-side in memory cache during sign-in so we can display it
 		options.Events = new OpenIdConnectEvents
