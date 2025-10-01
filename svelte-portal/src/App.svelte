@@ -31,16 +31,21 @@
 	$: apiEndpoint = selectedApi ? selectedApi.url : '';
 	$: currentJwtMeta = selectedApiId ? (jwtCodeByService[selectedApiId] || null) : null;
 	$: currentJwtMarkdown = currentJwtMeta ? currentJwtMeta.markdown : '';
+	$: defaultJwtDetails = (() => {
+		if (selectedApiId === 'dotnet') {
+			return { filename: 'dotnet8-api/Auth/KeycloakJwtMiddleware.cs', languageLabel: 'C#' };
+		}
+		if (selectedApiId === 'php') {
+			return { filename: 'php-api/public/index.php', languageLabel: 'PHP' };
+		}
+		return { filename: 'django-api/api/authentication.py', languageLabel: 'Python' };
+	})();
 	$: currentJwtFilename = currentJwtMeta && currentJwtMeta.filename
 		? currentJwtMeta.filename
-		: selectedApiId === 'dotnet'
-			? 'dotnet8-api/Auth/KeycloakJwtMiddleware.cs'
-			: 'django-api/api/authentication.py';
+		: defaultJwtDetails.filename;
 	$: currentJwtLanguageLabel = currentJwtMeta && currentJwtMeta.languageLabel
 		? currentJwtMeta.languageLabel
-		: selectedApiId === 'dotnet'
-			? 'C#'
-			: 'Python';
+		: defaultJwtDetails.languageLabel;
 	$: if (showCode && selectedApiId && !jwtCodeByService[selectedApiId]) {
 		ensureJwtCodeLoaded(selectedApiId);
 	}
@@ -92,7 +97,8 @@
 				if (!availableApis.length) {
 					availableApis = [
 						{ id: 'django', name: 'Django API', method: 'GET', url: buildDefaultEndpoint(), description: 'Django REST Framework weather endpoint (Bangkok)' },
-						{ id: 'dotnet', name: '.NET 8 API', method: 'GET', url: 'http://localhost:5100/api/weather/tokyo', description: 'ASP.NET Core weather endpoint (Tokyo)' }
+						{ id: 'dotnet', name: '.NET 8 API', method: 'GET', url: 'http://localhost:5100/api/weather/tokyo', description: 'ASP.NET Core weather endpoint (Tokyo)' },
+						{ id: 'php', name: 'PHP API', method: 'GET', url: 'http://localhost:8082/api/weather/london', description: 'PHP weather endpoint (London)' }
 					];
 				}
 				if (!selectedApiId && availableApis.length) {

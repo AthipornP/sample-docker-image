@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  php-api:
+    build: .
+    container_name: php-api
+    ports:
+      - "${PORT:-8082}:80"
+    env_file:
+      - .env
+    volumes:
+      - .:/var/www/html:rw
+    networks:
+      - customnet
+
+networks:
+  customnet:
+    external: true

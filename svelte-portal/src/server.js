@@ -353,6 +353,89 @@ public sealed class KeycloakJwtValidator
 
 public sealed record KeycloakValidationResult(ClaimsPrincipal Principal, IDictionary<string, object?> Payload);`;
 
+const PHP_JWT_SNIPPET = `<?php
+require __DIR__ . '/../vendor/autoload.php';
+
+use Firebase\\JWT\\JWT;
+use Firebase\\JWT\\JWK;
+
+// ฟังก์ชันนี้ใช้ตรวจสอบ JWT ที่ Keycloak ออกให้
+function verify_jwt(string $token): array
+{
+  static $cachedJwks = null;
+  static $cachedAt = 0;
+
+  $jwksUrl = $_ENV['KEYCLOAK_CERT_URL'] ?? '';
+  if ($jwksUrl === '') {
+    throw new RuntimeException('KEYCLOAK_CERT_URL environment variable is required.');
+  }
+
+  $cacheSeconds = (int) ($_ENV['KEYCLOAK_JWKS_CACHE_SECONDS'] ?? 3600);
+
+  // ดึง JWKS จาก Keycloak แล้ว cache ไว้เพื่อลดการเรียกซ้ำ
+  if ($cachedJwks === null || (time() - $cachedAt) >= $cacheSeconds) {
+    $client = curl_init($jwksUrl);
+    curl_setopt_array($client, [
+      CURLOPT_RETURNTRANSFER => true,
+      CURLOPT_TIMEOUT => 10,
+      CURLOPT_FOLLOWLOCATION => true,
+      CURLOPT_SSL_VERIFYPEER => false,
+      CURLOPT_SSL_VERIFYHOST => false,
+    ]);
+
+    $response = curl_exec($client);
+    if ($response === false) {
+      $error = curl_error($client);
+      curl_close($client);
+      throw new RuntimeException('Failed to fetch JWKS: ' . $error);
+    }
+
+    $status = curl_getinfo($client, CURLINFO_RESPONSE_CODE);
+    curl_close($client);
+
+    if ($status < 200 || $status >= 300) {
+      throw new RuntimeException('Failed to fetch JWKS: HTTP ' . $status);
+    }
+
+    $jwks = json_decode($response, true);
+    if (!is_array($jwks) || !isset($jwks['keys'])) {
+      throw new RuntimeException('Invalid JWKS payload.');
+    }
+
+    $cachedJwks = $jwks;
+    $cachedAt = time();
+  }
+
+  // แปลง JWKS เป็น key สำหรับ firebase/php-jwt (รองรับ RS256)
+  $keys = JWK::parseKeySet($cachedJwks, true);
+
+  // เผื่อเวลา clock skew เพื่อไม่ให้ token ที่เพิ่งออกใหม่ถูกปฏิเสธ
+  JWT::$leeway = 60;
+
+  $decoded = JWT::decode($token, $keys);
+  $payload = json_decode(json_encode($decoded, JSON_THROW_ON_ERROR), true, 512, JSON_THROW_ON_ERROR);
+
+  // ตรวจสอบ issuer / audience ให้ตรงตาม .env
+  $expectedIssuer = $_ENV['KEYCLOAK_ISSUER'] ?? '';
+  if ($expectedIssuer !== '' && ($payload['iss'] ?? null) !== $expectedIssuer) {
+    throw new UnexpectedValueException('Invalid token issuer.');
+  }
+
+  $expectedAudience = $_ENV['KEYCLOAK_AUDIENCE'] ?? '';
+  if ($expectedAudience !== '') {
+    $aud = $payload['aud'] ?? null;
+    if (is_array($aud)) {
+      if (!in_array($expectedAudience, $aud, true)) {
+        throw new UnexpectedValueException('Invalid token audience.');
+      }
+    } elseif ($aud !== $expectedAudience) {
+      throw new UnexpectedValueException('Invalid token audience.');
+    }
+  }
+
+  return $payload;
+}`;
+
 let client; // kept for compatibility but not used when using manual discovery
 
 // Serve static files
@@ -451,6 +534,8 @@ app.get('/api/apps', (req, res) => {
     { id: 'php', name: 'PHP', url: process.env.APP_PHP_URL || 'http://localhost:8080' },
   ];
   // expose API URLs configured in .env so the frontend can call them without user input
+  const phpApiUrl = process.env.API_PHP_URL || 'http://localhost:8082/api/weather/london';
+  const phpBaseUrl = phpApiUrl.replace(/\/api\/weather\/london$/i, '').replace(/\/$/, '');
   const api = [
     {
       id: 'django',
@@ -465,6 +550,14 @@ app.get('/api/apps', (req, res) => {
       method: 'GET',
       url: process.env.API_DOTNET_URL || ((process.env.APP_DOTNET_API_URL || 'http://localhost:5100').replace(/\/$/, '') + '/api/weather/tokyo'),
       description: 'ASP.NET Core weather endpoint (Tokyo)'
+    },
+    {
+      id: 'php',
+      name: 'PHP API',
+      method: 'GET',
+      url: phpApiUrl,
+      description: 'PHP weather endpoint (London)',
+      baseUrl: phpBaseUrl
     }
   ];
 
@@ -474,6 +567,7 @@ app.get('/api/apps', (req, res) => {
 app.get('/api/code/jwt', (req, res) => {
   const service = (req.query.service || 'django').toString().toLowerCase();
   const isDotnet = service === 'dotnet' || service === 'dotnet-api' || service === '.net' || service === 'dotnet8';
+  const isPhp = service === 'php' || service === 'php-api';
 
   if (isDotnet) {
     return res.json({
@@ -483,6 +577,17 @@ app.get('/api/code/jwt', (req, res) => {
       filename: 'dotnet8-api/Auth/KeycloakJwtMiddleware.cs',
       service: 'dotnet',
       serviceLabel: '.NET 8 API (C#)'
+    });
+  }
+
+  if (isPhp) {
+    return res.json({
+      code: PHP_JWT_SNIPPET,
+      language: 'php',
+      languageLabel: 'PHP',
+      filename: 'php-api/public/index.php',
+      service: 'php',
+      serviceLabel: 'PHP API (PHP)'
     });
   }
 
