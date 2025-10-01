@@ -24,6 +24,7 @@
     "express": "^4.21.2",
     "express-session": "^1.18.2",
     "highlight.js": "^11.11.1",
+    "mermaid": "^11.3.0",
     "marked": "^5.1.2",
     "openid-client": "^6.8.0",
     "prismjs": "^1.29.0",

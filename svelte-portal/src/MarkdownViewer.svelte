@@ -1,11 +1,13 @@
 <script>
+  import { onDestroy, tick } from 'svelte';
   import { marked } from 'marked';
   import hljs from 'highlight.js';
   import DOMPurify from 'dompurify';
+  import MermaidRenderer from './MermaidRenderer.svelte';
 
   // ตั้งค่า DOMPurify ให้อนุญาต class attributes
   DOMPurify.setConfig({
-    ALLOWED_ATTR: ['class', 'href', 'title', 'target', 'rel']
+    ALLOWED_ATTR: ['class', 'href', 'title', 'target', 'rel', 'data-mermaid-index']
   });
 
   // ใช้ setOptions ของ marked
@@ -21,23 +23,80 @@
 
   export let source = '';
   let html = '';
+  let container;
+  let mermaidDefinitions = [];
+  let mermaidInstances = [];
+
+  const defaultCodeRenderer = marked.Renderer.prototype.code;
 
   // แปลงทุกครั้งที่ source เปลี่ยน
-  $: html = DOMPurify.sanitize(marked.parse(source), {
-    USE_PROFILES: { html: true }
+  $: ({ html, mermaidDefinitions } = renderMarkdown(source));
+  $: mountMermaidComponents();
+
+  onDestroy(() => {
+    destroyMermaidInstances();
   });
+
+  function renderMarkdown(markdown = '') {
+    const definitions = [];
+    const renderer = new marked.Renderer();
+    renderer.code = function (code, infostring, escaped) {
+      const lang = (infostring || '').trim().toLowerCase();
+      if (lang === 'mermaid') {
+        const index = definitions.length;
+        definitions.push(code);
+        return `<div class="mermaid-placeholder" data-mermaid-index="${index}"></div>`;
+      }
+      return defaultCodeRenderer.call(this, code, infostring, escaped);
+    };
+
+    const parsed = marked.parse(markdown, { renderer });
+    const sanitized = DOMPurify.sanitize(parsed, { USE_PROFILES: { html: true } });
+    return { html: sanitized, mermaidDefinitions: definitions };
+  }
+
+  function destroyMermaidInstances() {
+    if (mermaidInstances && mermaidInstances.length) {
+      mermaidInstances.forEach(instance => {
+        if (instance && typeof instance.$destroy === 'function') {
+          instance.$destroy();
+        }
+      });
+    }
+    mermaidInstances = [];
+  }
+
+  async function mountMermaidComponents() {
+    if (!container) {
+      return;
+    }
+
+    await tick();
+    const placeholders = container.querySelectorAll('[data-mermaid-index]');
+
+    destroyMermaidInstances();
+
+    placeholders.forEach(placeholder => {
+      const idx = Number(placeholder.getAttribute('data-mermaid-index'));
+      if (Number.isNaN(idx) || !mermaidDefinitions[idx]) {
+        return;
+      }
+
+      const instance = new MermaidRenderer({
+        target: placeholder,
+        props: { definition: mermaidDefinitions[idx] }
+      });
+      mermaidInstances = [...mermaidInstances, instance];
+    });
+  }
 </script>
 
-<div class="markdown-body">{@html html}</div>
+<div class="markdown-body" bind:this={container}>{@html html}</div>
 
 <style>
   .markdown-body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
     line-height: 1.6;
-  }
-
-  .prose {
-    max-width: none;
   }
 
   /* Code block styling - ให้ highlight.js จัดการสี */
@@ -63,5 +122,14 @@
     background-color: transparent;
     padding: 0;
     color: inherit; /* ให้สีตาม highlight.js theme */
+  }
+
+  :global(.markdown-body .mermaid) {
+    margin: 1.25rem 0;
+    background: #0f172a;
+    border-radius: 12px;
+    padding: 1rem;
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.25);
+    overflow-x: auto;
   }
 </style>

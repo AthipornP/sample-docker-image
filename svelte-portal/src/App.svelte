@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import Navbar from './Navbar.svelte';
 	import MarkdownViewer from './MarkdownViewer.svelte';
+	import MermaidRenderer from './MermaidRenderer.svelte';
 	export let name;
 
 	let currentTime = new Date().toLocaleString();
@@ -232,6 +233,69 @@ async function checkUserStatus() {
   }
 }
 \`\`\``;
+
+	const architectureDiagram = `flowchart TB
+    %% Style definitions
+    classDef portal fill:#2563eb,color:#ffffff,stroke:#1d4ed8,stroke-width:2px
+    classDef auth fill:#166534,color:#ecfdf5,stroke:#14532d,stroke-width:1.5px
+    classDef server fill:#0f172a,color:#f8fafc,stroke:#0891b2,stroke-width:1.5px
+    classDef api fill:#f97316,color:#111827,stroke:#b45309,stroke-width:1.5px
+    classDef hub fill:#e2e8f0,color:#0f172a,stroke:#94a3b8,stroke-dasharray:4 3,stroke-width:1px
+
+    subgraph Portal[Customer Portal]
+        P0["Svelte Portal<br/>Launch point for SSO demos"]
+    end
+    class P0 portal
+
+    subgraph Identity[Single Sign-On]
+        KC((Keycloak IdP<br/>OAuth2 / OIDC provider))
+    end
+    class KC auth
+
+    subgraph Services[Protected Applications]
+        subgraph ServerApps[Server Applications]
+            N1[".NET 8 Sample<br/>Server UI"]
+            D1["Django Web App<br/>Protected pages"]
+            P1["PHP Sample App<br/>OIDC client"]
+        end
+        class D1,N1,P1 server
+
+        subgraph ApiApps[API Applications]
+            N2[".NET Minimal API<br/>Protected endpoints"]
+            D2["Django REST API<br/>JWT protected endpoints"]
+            P2["PHP API<br/>Token validation"]
+        end
+        class N2,D2,P2 api
+    end
+
+    SrvHub["Server App<br/>Entrypoint"]
+    ApiHub["API Explorer<br/>Links"]
+    SrvOIDC["Server OIDC<br/>Flow"]
+    ApiOIDC["API JWT<br/>Flow"]
+    class SrvHub,ApiHub,SrvOIDC,ApiOIDC hub
+
+    %% Portal launches apps
+    P0 -->|"Navigate"| SrvHub
+    P0 -->|"API tester"| ApiHub
+    P0 -.->|"OIDC docs"| KC
+    SrvHub --> N1
+    SrvHub --> D1
+    SrvHub --> P1
+    ApiHub --> N2
+    ApiHub --> D2
+    ApiHub --> P2
+
+    %% OIDC flows
+    N1 --> SrvOIDC
+    D1 --> SrvOIDC
+    P1 --> SrvOIDC
+    SrvOIDC -->|"OIDC authentication"| KC
+    KC -.->|"Tokens"| SrvOIDC
+    N2 --> ApiOIDC
+    D2 --> ApiOIDC
+    P2 --> ApiOIDC
+    ApiOIDC -->|"JWT validation"| KC
+    KC -.->|"JWKS"| ApiOIDC`;
 
 	function switchTab(tabNumber) {
 		activeTab = tabNumber;
@@ -520,6 +584,9 @@ async function checkUserStatus() {
 				{:else}
 					<!-- Authentication Code Examples -->
 					<div class="auth-examples">
+						<div class="diagram-card">
+							<MermaidRenderer definition={architectureDiagram} />
+						</div>
 						<h3>🔐 Authentication Code Examples</h3>
 						<p>Learn how to implement OIDC authentication in your application:</p>
 						
@@ -735,6 +802,24 @@ async function checkUserStatus() {
 		margin-bottom: 2rem;
 		backdrop-filter: blur(10px);
 		border: 1px solid rgba(255, 255, 255, 0.2);
+	}
+
+	.diagram-card {
+		margin-bottom: 1.5rem;
+		padding: 1rem;
+		background: rgba(0, 0, 0, 0.25);
+		border-radius: 10px;
+		border: 1px solid rgba(255, 255, 255, 0.25);
+		overflow: auto;
+	}
+
+	.diagram-card :global(.mermaid) {
+		background: transparent;
+		color: #0f172a;
+	}
+
+	.diagram-card :global(svg) {
+		max-width: 100%;
 	}
 
 	.auth-examples h3 {
@@ -1401,3 +1486,5 @@ async function checkUserStatus() {
 	/* values use blue to match portal theme */
 	:global(.string), :global(.number), :global(.boolean), :global(.null) { color: #0d47a1; }
 </style>
+
+

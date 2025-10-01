@@ -41,8 +41,8 @@ flowchart TB
 
     SrvHub["Server App<br/>Entrypoint"]
     ApiHub["API Explorer<br/>Links"]
-    SrvOIDC@{ shape: lin-rect, label: "Server OIDC<br/>Flow" }
-    ApiOIDC@{ shape: lin-rect, label: "API JWT<br/>Flow" }
+    SrvOIDC["Server OIDC<br/>Flow"]
+    ApiOIDC["API JWT<br/>Flow"]
     class SrvHub,ApiHub,SrvOIDC,ApiOIDC hub
 
     %% Portal launches apps
