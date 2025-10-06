@@ -13,7 +13,7 @@ spec:
     - name: http
       port: 8000
       targetPort: 8000
-      nodePort: 28000
+      nodePort: 30001
 
 ---
 # Postgres for django (simple Deployment + PVC)
