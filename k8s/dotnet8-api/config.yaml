@@ -22,4 +22,4 @@ stringData:
   OAUTH_CLIENT_ID: "sample-dotnet"
   OAUTH_CLIENT_SECRET: "HNjmQjSQr8kbXoaM0blh04ZugSioQkRI"
   OAUTH_ISSUER: "https://s02.iampm.online/realms/master"
-  OAUTH_REDIRECT_URI: "http://<NODE_IP>:25100/signin-oidc"
+  OAUTH_REDIRECT_URI: "http://<NODE_IP>:30005/signin-oidc"

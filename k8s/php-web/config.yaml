@@ -18,4 +18,4 @@ stringData:
   OAUTH_ISSUER: "https://s02.iampm.online/realms/master"
   OAUTH_CLIENT_ID: "sample-php"
   OAUTH_CLIENT_SECRET: "JnExt8Vb821ybSKQATMKPHWFRiNVBla5"
-  OAUTH_REDIRECT_URI: "http://<NODE_IP>:28080/callback.php"
+  OAUTH_REDIRECT_URI: "http://<NODE_IP>:30002/callback.php"
