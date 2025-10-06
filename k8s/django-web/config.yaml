@@ -1,0 +1,28 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: django-config
+  namespace: customer_portal
+data:
+  DJANGO_SETTINGS_MODULE: "config.settings"
+  POSTGRES_DB: "django"
+  POSTGRES_USER: "django"
+  POSTGRES_HOST: "django-postgres"
+  POSTGRES_PORT: "5432"
+  # Optional app URLs used by svelte-portal when talking to django
+  APP_DJANGO_URL: "http://django.customer_portal.svc.cluster.local:8000"
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: django-secret
+  namespace: customer_portal
+type: Opaque
+stringData:
+  POSTGRES_PASSWORD: "changeme"
+  DJANGO_SECRET_KEY: "dev-secret"
+  OAUTH_CLIENT_ID: "sample-django"
+  OAUTH_CLIENT_SECRET: "HbeeBuyAfGTrUq4Qv6DZk9KZi9Wdf28X"
+  OAUTH_ISSUER: "https://s02.iampm.online/realms/master"
+  OAUTH_REDIRECT_URI: "http://<NODE_IP>:28000/auth/callback"

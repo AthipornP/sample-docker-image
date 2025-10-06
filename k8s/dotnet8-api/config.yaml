@@ -1,0 +1,25 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dotnet8-api-config
+  namespace: customer_portal
+data:
+  PORT: "5100"
+  KEYCLOAK_URL: "https://s02.iampm.online/realms/master"
+  KEYCLOAK_CERT_URL: "https://s02.iampm.online/realms/master/protocol/openid-connect/certs"
+  KEYCLOAK_ISSUER: "https://s02.iampm.online/realms/master"
+  KEYCLOAK_AUDIENCE: "account"
+  KEYCLOAK_JWKS_CACHE_SECONDS: "3600"
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: dotnet8-api-secret
+  namespace: customer_portal
+type: Opaque
+stringData:
+  OAUTH_CLIENT_ID: "sample-dotnet"
+  OAUTH_CLIENT_SECRET: "HNjmQjSQr8kbXoaM0blh04ZugSioQkRI"
+  OAUTH_ISSUER: "https://s02.iampm.online/realms/master"
+  OAUTH_REDIRECT_URI: "http://<NODE_IP>:25100/signin-oidc"

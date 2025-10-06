@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: django-api-config
+  namespace: customer_portal
+data:
+  PORT: "8001"

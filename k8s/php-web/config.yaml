@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: php-config
+  namespace: customer_portal
+data:
+  # docker-compose uses an env_file; list common keys here or mount a Secret
+  APP_ENV: "production"
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: php-secret
+  namespace: customer_portal
+type: Opaque
+stringData:
+  OAUTH_ISSUER: "https://s02.iampm.online/realms/master"
+  OAUTH_CLIENT_ID: "sample-php"
+  OAUTH_CLIENT_SECRET: "JnExt8Vb821ybSKQATMKPHWFRiNVBla5"
+  OAUTH_REDIRECT_URI: "http://<NODE_IP>:28080/callback.php"

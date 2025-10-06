@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: django-api
+  namespace: customer_portal
+  labels:
+    app: django-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: django-api
+  template:
+    metadata:
+      labels:
+        app: django-api
+    spec:
+      containers:
+        - name: django-api
+          image: ghcr.io/example/django-api:latest
+          ports:
+            - containerPort: 8001
+          envFrom:
+            - configMapRef:
+                name: django-api-config
+          resources:
+            limits:
+              cpu: "300m"
+              memory: "256Mi"

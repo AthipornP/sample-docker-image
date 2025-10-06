@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: php-api
+  namespace: customer_portal
+  labels:
+    app: php-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: php-api
+  template:
+    metadata:
+      labels:
+        app: php-api
+    spec:
+      containers:
+        - name: php-api
+          image: ghcr.io/example/php-api:latest
+          ports:
+            - containerPort: 8082
+          envFrom:
+            - configMapRef:
+                name: php-api-config
+          resources:
+            limits:
+              cpu: "300m"
+              memory: "256Mi"

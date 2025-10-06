@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dotnet8-api
+  namespace: customer_portal
+  labels:
+    app: dotnet8-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dotnet8-api
+  template:
+    metadata:
+      labels:
+        app: dotnet8-api
+    spec:
+      containers:
+        - name: dotnet8-api
+          image: ghcr.io/example/dotnet8-api:latest
+          ports:
+            - containerPort: 5100
+          envFrom:
+            - configMapRef:
+                name: dotnet8-api-config
+            - secretRef:
+                name: dotnet8-api-secret
+          resources:
+            limits:
+              cpu: "300m"
+              memory: "256Mi"

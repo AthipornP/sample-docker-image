@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: svelte-portal
+  namespace: customer_portal
+  labels:
+    app: svelte-portal
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: svelte-portal
+  template:
+    metadata:
+      labels:
+        app: svelte-portal
+    spec:
+      containers:
+        - name: svelte-portal
+          image: ghcr.io/example/svelte-portal:latest
+          ports:
+            - containerPort: 3000
+          envFrom:
+            - configMapRef:
+                name: svelte-portal-config
+            - secretRef:
+                name: svelte-portal-secret
+          resources:
+            limits:
+              cpu: "500m"
+              memory: "256Mi"
+          # no persistent volumes in docker-compose for svelte-portal
