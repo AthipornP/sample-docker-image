@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: django-web
-  namespace: customer_portal
+  namespace: customer-portal
   labels:
     app: django-web
 spec:

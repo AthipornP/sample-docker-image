@@ -2,21 +2,21 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: svelte-portal-config
-  namespace: customer_portal
+  namespace: customer-portal
 data:
   NODE_ENV: "production"
-  APP_DJANGO_URL: "http://django.customer_portal.svc.cluster.local:8000"
-  APP_DOTNET_URL: "http://dotnet.customer_portal.svc.cluster.local:5000"
-  APP_PHP_URL: "http://php.customer_portal.svc.cluster.local:8080"
-  API_PHP_URL: "http://php.customer_portal.svc.cluster.local:8082/api/weather/london"
-  API_DJANGO_URL: "http://django.customer_portal.svc.cluster.local:8000/api/weather/bangkok"
+  APP_DJANGO_URL: "http://django.customer-portal.svc.cluster.local:8000"
+  APP_DOTNET_URL: "http://dotnet.customer-portal.svc.cluster.local:5000"
+  APP_PHP_URL: "http://php.customer-portal.svc.cluster.local:8080"
+  API_PHP_URL: "http://php.customer-portal.svc.cluster.local:8082/api/weather/london"
+  API_DJANGO_URL: "http://django.customer-portal.svc.cluster.local:8000/api/weather/bangkok"
 
 ---
 apiVersion: v1
 kind: Secret
 metadata:
   name: svelte-portal-secret
-  namespace: customer_portal
+  namespace: customer-portal
 type: Opaque
 stringData:
   OAUTH_CLIENT_ID: "sample-customer-portal"

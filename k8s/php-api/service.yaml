@@ -2,7 +2,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: php-api
-  namespace: customer_portal
+  namespace: customer-portal
   labels:
     app: php-api
 spec:

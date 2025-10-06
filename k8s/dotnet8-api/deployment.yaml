@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: dotnet8-api
-  namespace: customer_portal
+  namespace: customer-portal
   labels:
     app: dotnet8-api
 spec:

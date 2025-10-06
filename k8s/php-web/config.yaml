@@ -2,7 +2,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: php-config
-  namespace: customer_portal
+  namespace: customer-portal
 data:
   # docker-compose uses an env_file; list common keys here or mount a Secret
   APP_ENV: "production"
@@ -12,7 +12,7 @@ apiVersion: v1
 kind: Secret
 metadata:
   name: php-secret
-  namespace: customer_portal
+  namespace: customer-portal
 type: Opaque
 stringData:
   OAUTH_ISSUER: "https://s02.iampm.online/realms/master"
