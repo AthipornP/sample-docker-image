@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: django-web
-          image: ghcr.io/example/django:latest
+          image: docker.io/beamblackdragon/django:f9c653c
           ports:
             - containerPort: 8000
           envFrom:

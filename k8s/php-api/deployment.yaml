@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: php-api
-          image: ghcr.io/example/php-api:latest
+          image: docker.io/beamblackdragon/php-api:f9c653c
           ports:
             - containerPort: 8082
           envFrom:

@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: php-web
-          image: ghcr.io/example/php-web:latest
+          image: docker.io/beamblackdragon/php:f9c653c
           ports:
             - containerPort: 80
           envFrom:

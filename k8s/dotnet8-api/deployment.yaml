@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: dotnet8-api
-          image: ghcr.io/example/dotnet8-api:latest
+          image: docker.io/beamblackdragon/dotnet8-api:f9c653c
           ports:
             - containerPort: 5100
           envFrom:

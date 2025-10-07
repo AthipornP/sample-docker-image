@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: django-api
-          image: ghcr.io/example/django-api:latest
+          image: docker.io/beamblackdragon/django-api:f9c653c
           ports:
             - containerPort: 8001
           envFrom:
