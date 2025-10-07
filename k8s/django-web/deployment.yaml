@@ -25,13 +25,12 @@ spec:
                 name: django-config
             - secretRef:
                 name: django-secret
-          volumeMounts:
-            - name: app-source
-              mountPath: /app
           resources:
             limits:
               cpu: "500m"
               memory: "512Mi"
-      volumes:
-        - name: app-source
-          emptyDir: {}
+      # NOTE: removed an emptyDir mount that previously masked the application files
+      # If you need to provide runtime writable storage for /app, use a PVC that
+      # contains the application content or change the image to copy runtime
+      # writable files to a different path. Mounting an emptyDir over /app
+      # removes files that are baked into the image (like manage.py).
