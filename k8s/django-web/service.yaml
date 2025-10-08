@@ -14,55 +14,6 @@ spec:
       port: 8000
       targetPort: 8000
       nodePort: 30001
-
----
-# Postgres for django (simple Deployment + PVC)
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: django-postgres
-  namespace: customer-portal
-  labels:
-    app: django-postgres
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: django-postgres
-  template:
-    metadata:
-      labels:
-        app: django-postgres
-    spec:
-      containers:
-        - name: postgres
-          image: postgres:15
-          env:
-            - name: POSTGRES_DB
-              valueFrom:
-                configMapKeyRef:
-                  name: django-config
-                  key: POSTGRES_DB
-            - name: POSTGRES_USER
-              valueFrom:
-                configMapKeyRef:
-                  name: django-config
-                  key: POSTGRES_USER
-            - name: POSTGRES_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: django-secret
-                  key: POSTGRES_PASSWORD
-          ports:
-            - containerPort: 5432
-          volumeMounts:
-            - name: postgres-data
-              mountPath: /var/lib/postgresql/data
-      volumes:
-        - name: postgres-data
-          emptyDir: {}
-
----
 # Expose Postgres via NodePort for external access (use only for debugging; consider port-forward or secured ingress for production)
 apiVersion: v1
 kind: Service
