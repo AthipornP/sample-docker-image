@@ -61,3 +61,22 @@ spec:
       volumes:
         - name: postgres-data
           emptyDir: {}
+
+---
+# Expose Postgres via NodePort for external access (use only for debugging; consider port-forward or secured ingress for production)
+apiVersion: v1
+kind: Service
+metadata:
+  name: django-postgres
+  namespace: customer-portal
+  labels:
+    app: django-postgres
+spec:
+  type: NodePort
+  selector:
+    app: django-postgres
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: 5432
+      nodePort: 30006
