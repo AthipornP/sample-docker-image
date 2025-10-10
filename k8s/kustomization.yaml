@@ -14,3 +14,4 @@ resources:
   - django-api
   - php-api
   - dotnet8-api
+  - postgres-operator  # CloudNativePG operator and PostgreSQL HA cluster

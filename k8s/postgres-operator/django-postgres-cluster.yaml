@@ -1,0 +1,136 @@
+# CloudNativePG PostgreSQL Cluster with HA (Primary + Replica)
+# This replaces the manual StatefulSet with an operator-managed cluster
+
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: django-postgres-cluster
+  namespace: customer-portal
+spec:
+  instances: 3  # 1 primary + 2 replicas for HA
+  
+  # PostgreSQL configuration
+  postgresql:
+    parameters:
+      max_connections: "200"
+      shared_buffers: "256MB"
+      effective_cache_size: "1GB"
+      wal_buffers: "16MB"
+      checkpoint_completion_target: "0.9"
+      wal_keep_size: "1GB"
+      
+  # Bootstrap from initdb (new cluster)
+  bootstrap:
+    initdb:
+      database: django
+      owner: django
+      secret:
+        name: django-postgres-credentials
+      encoding: "UTF8"
+      localeCType: "C"
+      localeCollate: "C"
+  
+  # Storage configuration (using Ceph)
+  storage:
+    size: 10Gi
+    storageClass: rook-ceph-block
+    
+  # Monitoring and logging
+  monitoring:
+    enabled: false  # Set to true if you want Prometheus metrics
+    
+  # Resources and limits
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "100m"
+    limits:
+      memory: "1Gi"
+      cpu: "500m"
+      
+  # Automatic failover and switchover
+  failoverDelay: 0
+  switchoverDelay: 60
+  
+  # Pod disruption budget for HA
+  minSyncReplicas: 1
+  maxSyncReplicas: 2
+  
+  # Backup configuration (optional - can be configured later)
+  # backup:
+  #   target: primary
+  #   method: pg_basebackup
+  #   wal:
+  #     retention: "7d"
+
+---
+# Secret containing PostgreSQL credentials
+# The operator will use this to create the database and user
+apiVersion: v1
+kind: Secret
+metadata:
+  name: django-postgres-credentials
+  namespace: customer-portal
+type: kubernetes.io/basic-auth
+stringData:
+  username: django
+  password: changeme
+  
+---
+# Service to expose the primary PostgreSQL instance
+# The operator creates services automatically, but this ensures consistent naming
+apiVersion: v1
+kind: Service
+metadata:
+  name: django-postgres
+  namespace: customer-portal
+  labels:
+    app: django-postgres-cluster
+spec:
+  type: ClusterIP
+  selector:
+    postgresql: django-postgres-cluster
+    role: primary
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: 5432
+
+---
+# Optional: Service for read-only queries (targets replicas)
+apiVersion: v1
+kind: Service
+metadata:
+  name: django-postgres-ro
+  namespace: customer-portal
+  labels:
+    app: django-postgres-cluster
+spec:
+  type: ClusterIP
+  selector:
+    postgresql: django-postgres-cluster
+    role: replica
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: 5432
+
+---
+# NodePort service for external access (debugging)
+apiVersion: v1
+kind: Service
+metadata:
+  name: django-postgres-nodeport
+  namespace: customer-portal
+  labels:
+    app: django-postgres-cluster
+spec:
+  type: NodePort
+  selector:
+    postgresql: django-postgres-cluster
+    role: primary
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: 5432
+      nodePort: 30006
