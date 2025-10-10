@@ -23,7 +23,7 @@ metadata:
     app: django-postgres
 spec:
   serviceName: django-postgres-headless
-  replicas: 1
+  replicas: 3
   selector:
     matchLabels:
       app: django-postgres
