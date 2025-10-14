@@ -14,4 +14,5 @@ resources:
   - django-api
   - php-api
   - dotnet8-api
-  - postgres-operator  # CloudNativePG operator and PostgreSQL HA cluster
+  # postgres-operator is managed as a separate ArgoCD Application to avoid
+  # namespace/ID conflicts with this customer-portal kustomize build.

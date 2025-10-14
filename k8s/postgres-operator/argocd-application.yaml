@@ -1,0 +1,20 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: postgres-operator
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: 'https://10.191.10.60/athiporn_p/sample-docker-image.git' # replace with your repo
+    targetRevision: HEAD
+    path: k8s/postgres-operator
+  destination:
+    server: 'https://kubernetes.default.svc'
+    namespace: cloudnativepg-system
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
