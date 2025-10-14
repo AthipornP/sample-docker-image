@@ -146,8 +146,6 @@ spec:
         image: ghcr.io/cloudnative-pg/cloudnative-pg:1.20.4
         command:
         - /manager
-        args:
-        - --config-map-name=cloudnativepg-config
         env:
         - name: OPERATOR_NAMESPACE
           valueFrom:
