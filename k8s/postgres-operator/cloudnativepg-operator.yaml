@@ -130,16 +130,16 @@ metadata:
   name: cloudnativepg-controller-manager
   namespace: cloudnativepg-system
   labels:
-    app.kubernetes.io/name: cloudnativepg
+    app.kubernetes.io/name: cloudnative-pg
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app.kubernetes.io/name: cloudnativepg
+      app.kubernetes.io/name: cloudnative-pg
   template:
     metadata:
       labels:
-        app.kubernetes.io/name: cloudnativepg
+        app.kubernetes.io/name: cloudnative-pg
     spec:
       serviceAccountName: cloudnativepg-controller-manager
       containers:
