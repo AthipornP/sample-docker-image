@@ -147,7 +147,6 @@ spec:
         command:
         - /manager
         args:
-        - --leader-elect
         - --config-map-name=cloudnativepg-config
         env:
         - name: OPERATOR_NAMESPACE
