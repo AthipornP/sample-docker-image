@@ -173,10 +173,9 @@ spec:
         app.kubernetes.io/name: cloudnative-pg
     spec:
       serviceAccountName: cloudnativepg-controller-manager
-      containers:
-      - name: manager
-        image: ghcr.io/cloudnative-pg/cloudnative-pg:1.27.0
-        imagePullPolicy: IfNotPresent
+      initContainers:
+      - name: cert-setup
+        image: busybox:1.36
         command:
         - sh
         - -c
@@ -184,8 +183,24 @@ spec:
           # Copy and rename cert files to expected names
           cp /tmp/certs/tls.crt /tmp/k8s-webhook-server/serving-certs/apiserver.crt
           cp /tmp/certs/tls.key /tmp/k8s-webhook-server/serving-certs/apiserver.key
-          # Start the operator
-          exec manager controller --leader-elect --config-map-name=cloudnativepg-config --webhook-port=9443
+          chmod 644 /tmp/k8s-webhook-server/serving-certs/apiserver.crt
+          chmod 600 /tmp/k8s-webhook-server/serving-certs/apiserver.key
+          ls -la /tmp/k8s-webhook-server/serving-certs/
+        volumeMounts:
+        - mountPath: /tmp/k8s-webhook-server/serving-certs
+          name: webhook-cert-dir
+        - mountPath: /tmp/certs
+          name: webhook-cert
+          readOnly: true
+      containers:
+      - name: manager
+        image: ghcr.io/cloudnative-pg/cloudnative-pg:1.27.0
+        imagePullPolicy: IfNotPresent
+        args:
+        - controller
+        - --leader-elect
+        - --config-map-name=cloudnativepg-config
+        - --webhook-port=9443
         env:
         - name: OPERATOR_NAMESPACE
           valueFrom:
