@@ -164,6 +164,7 @@ spec:
         - /manager
         - controller
         args:
+        - --webhook-cert-dir=/run/secrets
         - --leader-elect
         - --config-map-name=cloudnativepg-config
         env:
