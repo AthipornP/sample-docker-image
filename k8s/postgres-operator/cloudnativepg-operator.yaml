@@ -28,6 +28,8 @@ rules:
   - secrets
   - services
   - namespaces
+  - nodes
+  - serviceaccounts
   verbs:
   - create
   - delete
@@ -79,6 +81,8 @@ rules:
   - clusters
   - poolers
   - scheduledbackups
+  - imagecatalogs
+  - clusterimagecatalogs
   verbs:
   - create
   - delete
@@ -94,6 +98,8 @@ rules:
   - clusters/status
   - poolers/status
   - scheduledbackups/status
+  - imagecatalogs/status
+  - clusterimagecatalogs/status
   verbs:
   - get
   - patch
@@ -129,6 +135,20 @@ rules:
   - coordination.k8s.io
   resources:
   - leases
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+# grant operator access to manage RBAC resources
+- apiGroups:
+  - rbac.authorization.k8s.io
+  resources:
+  - roles
+  - rolebindings
   verbs:
   - create
   - delete
