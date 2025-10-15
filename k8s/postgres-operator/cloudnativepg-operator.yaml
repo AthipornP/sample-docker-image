@@ -182,6 +182,7 @@ spec:
         - --leader-elect
         - --config-map-name=cloudnativepg-config
         - --webhook-port=9443
+        - --webhook-cert-dir=/tmp/k8s-webhook-server/serving-certs
         env:
         - name: OPERATOR_NAMESPACE
           valueFrom:
@@ -201,7 +202,6 @@ spec:
           capabilities:
             drop:
             - ALL
-          readOnlyRootFilesystem: true
           runAsNonRoot: true
           runAsUser: 10001
         ports:
