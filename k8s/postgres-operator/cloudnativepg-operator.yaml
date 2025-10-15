@@ -83,6 +83,10 @@ rules:
   - scheduledbackups
   - imagecatalogs
   - clusterimagecatalogs
+  - databases
+  - failoverquorums
+  - publications
+  - subscriptions
   verbs:
   - create
   - delete
@@ -100,10 +104,15 @@ rules:
   - scheduledbackups/status
   - imagecatalogs/status
   - clusterimagecatalogs/status
+  - databases/status
+  - failoverquorums/status
+  - publications/status
+  - subscriptions/status
   verbs:
   - get
   - patch
   - update
+  - watch
 - apiGroups:
   - policy
   resources:
