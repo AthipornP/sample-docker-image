@@ -9,6 +9,12 @@ metadata:
 spec:
   instances: 3  # 1 primary + 2 replicas for HA
   
+  # Monitoring and logging
+  monitoring:
+    enabled: false
+    enablePodMonitor: false
+    disableDefaultQueries: false
+    
   # PostgreSQL configuration
   postgresql:
     parameters:
@@ -18,6 +24,7 @@ spec:
       wal_buffers: "16MB"
       checkpoint_completion_target: "0.9"
       wal_keep_size: "1GB"
+    postgresGID: 26
       
   # Bootstrap from initdb (new cluster)
   bootstrap:
@@ -34,10 +41,6 @@ spec:
   storage:
     size: 1Gi
     storageClass: rook-ceph-block
-    
-  # Monitoring and logging
-  monitoring:
-    enabled: false  # Set to true if you want Prometheus metrics
     
   # Resources and limits
   resources:
