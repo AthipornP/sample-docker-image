@@ -183,8 +183,10 @@ spec:
           # Copy and rename cert files to expected names
           cp /tmp/certs/tls.crt /tmp/k8s-webhook-server/serving-certs/apiserver.crt
           cp /tmp/certs/tls.key /tmp/k8s-webhook-server/serving-certs/apiserver.key
+          # Set correct permissions for user 10001
+          chown -R 10001:10001 /tmp/k8s-webhook-server/serving-certs/
           chmod 644 /tmp/k8s-webhook-server/serving-certs/apiserver.crt
-          chmod 600 /tmp/k8s-webhook-server/serving-certs/apiserver.key
+          chmod 644 /tmp/k8s-webhook-server/serving-certs/apiserver.key
           ls -la /tmp/k8s-webhook-server/serving-certs/
         volumeMounts:
         - mountPath: /tmp/k8s-webhook-server/serving-certs
