@@ -7,7 +7,7 @@ data:
   DJANGO_SETTINGS_MODULE: "config.settings"
   POSTGRES_DB: "django"
   POSTGRES_USER: "django"
-  POSTGRES_HOST: "django-postgres"  # Points to CloudNativePG primary service
+  POSTGRES_HOST: "django-postgres-cluster-rw"  # Use CloudNativePG auto-generated service
   POSTGRES_PORT: "5432"
   # Optional: Use django-postgres-ro for read-only queries
   # Optional app URLs used by svelte-portal when talking to django
