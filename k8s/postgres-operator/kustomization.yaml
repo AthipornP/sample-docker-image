@@ -4,5 +4,3 @@ kind: Kustomization
 resources:
   - cloudnativepg-operator.yaml
   - django-postgres-cluster.yaml
-  - issuer.yaml
-  - certificate-webhook.yaml
