@@ -179,7 +179,6 @@ spec:
         imagePullPolicy: IfNotPresent
         args:
         - controller
-        - --webhook-cert-dir=/run/secrets
         - --leader-elect
         - --config-map-name=cloudnativepg-config
         - --webhook-port=9443
