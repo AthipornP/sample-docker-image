@@ -175,11 +175,11 @@ spec:
       serviceAccountName: cloudnativepg-controller-manager
       containers:
       - name: manager
-        image: ghcr.io/cloudnative-pg/cloudnative-pg:1.20.4
+        image: ghcr.io/cloudnative-pg/cloudnative-pg:1.27.0
         imagePullPolicy: IfNotPresent
         args:
         - controller
-        - --webhook-cert-dir=/run/secrets/tls
+        - --webhook-cert-dir=/run/secrets
         - --leader-elect
         - --config-map-name=cloudnativepg-config
         - --webhook-port=9443
@@ -213,21 +213,9 @@ spec:
           name: webhook-server
           protocol: TCP
         volumeMounts:
-        - mountPath: /run/secrets/tls
+        - mountPath: /run/secrets
           name: webhook-cert
           readOnly: true
-        livenessProbe:
-          httpGet:
-            path: /healthz
-            port: 8080
-          initialDelaySeconds: 15
-          periodSeconds: 20
-        readinessProbe:
-          httpGet:
-            path: /readyz
-            port: 8080
-          initialDelaySeconds: 5
-          periodSeconds: 10
       volumes:
       - name: webhook-cert
         secret:
