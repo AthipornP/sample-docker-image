@@ -8,12 +8,6 @@ metadata:
   namespace: customer-portal
 spec:
   instances: 3  # 1 primary + 2 replicas for HA
-  
-  # Monitoring and logging
-  monitoring:
-    enabled: false
-    enablePodMonitor: false
-    disableDefaultQueries: false
     
   # PostgreSQL configuration
   postgresql:
