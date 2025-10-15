@@ -189,6 +189,8 @@ spec:
               fieldPath: metadata.namespace
         - name: MONITORING_ENABLED
           value: "false"
+        - name: WEBHOOK_CERT_DIR
+          value: "/tmp/k8s-webhook-server/serving-certs"
         resources:
           limits:
             cpu: 500m
@@ -214,10 +216,14 @@ spec:
         - mountPath: /tmp/k8s-webhook-server/serving-certs
           name: webhook-cert
           readOnly: false
+        - mountPath: /run/secrets
+          name: run-secrets
       volumes:
       - name: webhook-cert
         secret:
           secretName: cloudnativepg-webhook-server-cert
+      - name: run-secrets
+        emptyDir: {}
       terminationGracePeriodSeconds: 10
 ---
 apiVersion: v1
