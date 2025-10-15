@@ -198,10 +198,13 @@ spec:
           protocol: TCP
         volumeMounts:
         - mountPath: /run/secrets
-          name: run-secrets
-          # emptyDir for writable certificate directory
-      - name: run-secrets
-        emptyDir: {}
+          name: webhook-cert
+          readOnly: true
+      volumes:
+      - name: webhook-cert
+        secret:
+          secretName: cloudnativepg-webhook-server-cert
+          # certificate from cert-manager
       terminationGracePeriodSeconds: 10
 ---
 apiVersion: v1
