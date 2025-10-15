@@ -177,11 +177,15 @@ spec:
       - name: manager
         image: ghcr.io/cloudnative-pg/cloudnative-pg:1.27.0
         imagePullPolicy: IfNotPresent
-        args:
-        - controller
-        - --leader-elect
-        - --config-map-name=cloudnativepg-config
-        - --webhook-port=9443
+        command:
+        - sh
+        - -c
+        - |
+          # Copy and rename cert files to expected names
+          cp /tmp/certs/tls.crt /tmp/k8s-webhook-server/serving-certs/apiserver.crt
+          cp /tmp/certs/tls.key /tmp/k8s-webhook-server/serving-certs/apiserver.key
+          # Start the operator
+          exec manager controller --leader-elect --config-map-name=cloudnativepg-config --webhook-port=9443
         env:
         - name: OPERATOR_NAMESPACE
           valueFrom:
@@ -214,14 +218,18 @@ spec:
           protocol: TCP
         volumeMounts:
         - mountPath: /tmp/k8s-webhook-server/serving-certs
+          name: webhook-cert-dir
+        - mountPath: /tmp/certs
           name: webhook-cert
-          readOnly: false
+          readOnly: true
         - mountPath: /run/secrets
           name: run-secrets
       volumes:
       - name: webhook-cert
         secret:
           secretName: cloudnativepg-webhook-server-cert
+      - name: webhook-cert-dir
+        emptyDir: {}
       - name: run-secrets
         emptyDir: {}
       terminationGracePeriodSeconds: 10
