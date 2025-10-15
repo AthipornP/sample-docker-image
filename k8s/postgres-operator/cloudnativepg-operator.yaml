@@ -138,6 +138,23 @@ subjects:
   name: cloudnativepg-controller-manager
   namespace: cloudnativepg-system
 ---
+# Webhook Service - นี่คือสิ่งที่ขาดหายไป!
+apiVersion: v1
+kind: Service
+metadata:
+  name: cloudnativepg-webhook-server
+  namespace: cloudnativepg-system
+  labels:
+    app.kubernetes.io/name: cloudnative-pg
+spec:
+  ports:
+  - name: webhook-server
+    port: 443
+    protocol: TCP
+    targetPort: 9443
+  selector:
+    app.kubernetes.io/name: cloudnative-pg
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -162,9 +179,10 @@ spec:
         imagePullPolicy: IfNotPresent
         args:
         - controller
-        - --webhook-cert-dir=/run/secrets
+        - --webhook-cert-dir=/run/secrets/tls
         - --leader-elect
         - --config-map-name=cloudnativepg-config
+        - --webhook-port=9443
         env:
         - name: OPERATOR_NAMESPACE
           valueFrom:
@@ -195,14 +213,25 @@ spec:
           name: webhook-server
           protocol: TCP
         volumeMounts:
-        - mountPath: /run/secrets
+        - mountPath: /run/secrets/tls
           name: webhook-cert
           readOnly: true
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8080
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 10
       volumes:
       - name: webhook-cert
         secret:
           secretName: cloudnativepg-webhook-server-cert
-          # certificate from cert-manager
       terminationGracePeriodSeconds: 10
 ---
 apiVersion: v1
@@ -212,3 +241,5 @@ metadata:
   namespace: cloudnativepg-system
 data:
   # Default configuration for CloudNativePG
+  config: |
+    {}
