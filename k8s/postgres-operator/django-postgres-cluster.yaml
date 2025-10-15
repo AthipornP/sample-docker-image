@@ -89,8 +89,8 @@ metadata:
 spec:
   type: ClusterIP
   selector:
-    postgresql: django-postgres-cluster
-    role: primary
+    cnpg.io/cluster: django-postgres-cluster
+    cnpg.io/instanceRole: primary
   ports:
     - name: postgres
       port: 5432
@@ -108,29 +108,9 @@ metadata:
 spec:
   type: ClusterIP
   selector:
-    postgresql: django-postgres-cluster
-    role: replica
+    cnpg.io/cluster: django-postgres-cluster
+    cnpg.io/instanceRole: replica
   ports:
     - name: postgres
       port: 5432
       targetPort: 5432
-
----
-# NodePort service for external access (debugging)
-apiVersion: v1
-kind: Service
-metadata:
-  name: django-postgres-nodeport
-  namespace: customer-portal
-  labels:
-    app: django-postgres-cluster
-spec:
-  type: NodePort
-  selector:
-    postgresql: django-postgres-cluster
-    role: primary
-  ports:
-    - name: postgres
-      port: 5432
-      targetPort: 5432
-      nodePort: 30006

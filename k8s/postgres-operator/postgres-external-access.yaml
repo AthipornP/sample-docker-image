@@ -1,0 +1,140 @@
+# External Access Services for PostgreSQL Cluster
+# These services provide different ways to access PostgreSQL from outside the cluster
+
+---
+# NodePort Service - Direct access via Node IP:Port
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-nodeport
+  namespace: customer-portal
+  labels:
+    app: django-postgres-cluster
+    service-type: external-access
+spec:
+  type: NodePort
+  selector:
+    cnpg.io/cluster: django-postgres-cluster
+    cnpg.io/instanceRole: primary
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: 5432
+      nodePort: 30006  # Access via <node-ip>:30006
+
+---
+# LoadBalancer Service (if supported by your cluster)
+# Uncomment this if you have a LoadBalancer controller (like MetalLB)
+# apiVersion: v1
+# kind: Service
+# metadata:
+#   name: postgres-loadbalancer
+#   namespace: customer-portal
+#   labels:
+#     app: django-postgres-cluster
+#     service-type: external-access
+# spec:
+#   type: LoadBalancer
+#   selector:
+#     cnpg.io/cluster: django-postgres-cluster
+#     cnpg.io/instanceRole: primary
+#   ports:
+#     - name: postgres
+#       port: 5432
+#       targetPort: 5432
+
+---
+# Ingress for TCP connections (requires ingress controller that supports TCP)
+# This is for advanced setups with ingress controllers like nginx-ingress with TCP support
+# apiVersion: v1
+# kind: ConfigMap
+# metadata:
+#   name: tcp-services
+#   namespace: ingress-nginx
+# data:
+#   5432: "customer-portal/postgres-nodeport:5432"
+
+---
+# Port Forwarding Helper Script
+# Create this as a ConfigMap to help users with port forwarding
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-access-helper
+  namespace: customer-portal
+  labels:
+    app: django-postgres-cluster
+data:
+  port-forward.sh: |
+    #!/bin/bash
+    echo "Starting PostgreSQL port forwarding..."
+    echo "PostgreSQL will be available at localhost:5432"
+    echo "To connect: psql -h localhost -p 5432 -U django -d postgres"
+    echo "Press Ctrl+C to stop"
+    kubectl port-forward -n customer-portal service/django-postgres-cluster-rw 5432:5432
+  
+  connection-info.txt: |
+    PostgreSQL Connection Information
+    ================================
+    
+    Method 1: Port Forwarding (Recommended for development)
+    --------------------------------------------------------
+    Run: kubectl port-forward -n customer-portal service/django-postgres-cluster-rw 5432:5432
+    Connect to: localhost:5432
+    
+    Method 2: NodePort (Direct access)
+    ----------------------------------
+    Connect to: <any-node-ip>:30006
+    Available node IPs:
+    - 10.191.10.50 (kub-master)
+    - 10.191.10.52 (kub-node)
+    - 10.191.10.53 (kub-node2)
+    - 10.191.10.54 (kub-node03)
+    
+    Connection Details:
+    -------------------
+    Database: postgres
+    Username: django
+    Password: changeme
+    
+    Services Available:
+    -------------------
+    - django-postgres-cluster-rw  (Primary - Read/Write)
+    - django-postgres-cluster-ro  (Replicas - Read Only)
+    - django-postgres-cluster-r   (Load balanced reads)
+    
+    Security Note:
+    --------------
+    NodePort exposes the database publicly on the specified port.
+    For production, consider using port-forwarding or VPN access.
+
+---
+# NetworkPolicy to control access (optional security)
+# Uncomment and modify as needed for your security requirements
+# apiVersion: networking.k8s.io/v1
+# kind: NetworkPolicy
+# metadata:
+#   name: postgres-external-access
+#   namespace: customer-portal
+# spec:
+#   podSelector:
+#     matchLabels:
+#       cnpg.io/cluster: django-postgres-cluster
+#   policyTypes:
+#   - Ingress
+#   ingress:
+#   - from:
+#     - namespaceSelector:
+#         matchLabels:
+#           name: customer-portal
+#     - podSelector: {}
+#     ports:
+#     - protocol: TCP
+#       port: 5432
+#   # Allow from specific IP ranges (replace with your office IPs)
+#   - from:
+#     - ipBlock:
+#         cidr: 10.191.10.0/24  # Allow from your local network
+#     ports:
+#     - protocol: TCP
+#       port: 5432
