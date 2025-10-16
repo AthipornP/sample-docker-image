@@ -1,0 +1,25 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: grafana-monitoring
+  namespace: argocd
+  annotations:
+    description: "Argo CD Application to deploy Grafana and monitoring manifests from this repo/path"
+spec:
+  project: default
+  source:
+    repoURL: "https://github.com/AthipornP/sample-docker-image.git"
+    targetRevision: main
+    path: k8s/grafana
+    directory:
+      recurse: true
+  destination:
+    server: "https://kubernetes.default.svc"
+    namespace: monitoring
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - Validate=true

@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres-exporter
+  namespace: monitoring
+  labels:
+    app: postgres-exporter
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres-exporter
+  template:
+    metadata:
+      labels:
+        app: postgres-exporter
+    spec:
+      containers:
+        - name: postgres-exporter
+          image: prometheuscommunity/postgres-exporter:0.11.0
+          env:
+            - name: DATA_SOURCE_NAME
+              value: "postgresql://$(DATASOURCE_USER):$(DATASOURCE_PASSWORD)@django-postgres.customer-portal.svc.cluster.local:5432/django?sslmode=disable"
+            - name: DATASOURCE_USER
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-exporter-credentials
+                  key: datasource_user
+            - name: DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-exporter-credentials
+                  key: datasource_password
+          ports:
+            - containerPort: 9187
+              name: metrics

@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboards
+  namespace: monitoring
+  labels:
+    grafana_dashboard: "1"
+data:
+  simple-cluster-overview.json: |
+    {
+      "annotations": {"list": []},
+      "panels": [
+        {
+          "type": "text",
+          "title": "CloudNativePG Monitoring",
+          "gridPos": {"h": 2, "w": 24, "x": 0, "y": 0},
+          "options": {"content": "<h3>Import or replace this dashboard with a CloudNativePG-specific dashboard.</h3>", "mode": "html"}
+        }
+      ],
+      "schemaVersion": 27,
+      "title": "CNPG Overview",
+      "version": 1
+    }
