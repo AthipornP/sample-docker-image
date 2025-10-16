@@ -38,7 +38,7 @@ data:
             regex: __meta_kubernetes_pod_label_cnpg_io_(.+)
           - source_labels: [__meta_kubernetes_namespace]
             action: replace
-            target_label: kubernetes_namespace
+            target_label: namespace
           - source_labels: [__meta_kubernetes_pod_name]
             action: replace
             target_label: pod
@@ -51,6 +51,12 @@ data:
           - source_labels: [__meta_kubernetes_pod_label_cnpg_io_instanceName]
             action: replace
             target_label: instance
+        # Rename kubernetes labels to match dashboard expectations
+        metric_relabel_configs:
+          - source_labels: [kubernetes_namespace]
+            target_label: namespace
+          - source_labels: [kubernetes_pod_name]
+            target_label: pod
       
       # Prometheus self-monitoring
       - job_name: 'prometheus'
