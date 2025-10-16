@@ -20,8 +20,6 @@ spec:
           image: prometheuscommunity/postgres-exporter:v0.12.0
           imagePullPolicy: IfNotPresent
           env:
-            - name: DATA_SOURCE_NAME
-              value: "postgresql://$(DATASOURCE_USER):$(DATASOURCE_PASSWORD)@django-postgres.customer-portal.svc.cluster.local:5432/django?sslmode=disable"
             - name: DATASOURCE_USER
               valueFrom:
                 secretKeyRef:
@@ -32,6 +30,8 @@ spec:
                 secretKeyRef:
                   name: postgres-exporter-credentials
                   key: datasource_password
+            - name: DATA_SOURCE_NAME
+              value: "postgresql://$(DATASOURCE_USER):$(DATASOURCE_PASSWORD)@django-postgres.customer-portal.svc.cluster.local:5432/django?sslmode=disable"
           ports:
             - containerPort: 9187
               name: metrics
