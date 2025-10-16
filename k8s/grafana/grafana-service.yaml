@@ -2,7 +2,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: grafana
-  namespace: monitoring
+  namespace: grafana
   labels:
     app: grafana
 spec:
@@ -12,6 +12,6 @@ spec:
       targetPort: 3000
       protocol: TCP
       name: http
-      # nodePort intentionally omitted to avoid conflicts; cluster will assign one
+      nodePort: 32300
   selector:
     app: grafana

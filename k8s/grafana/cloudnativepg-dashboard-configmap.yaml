@@ -1,0 +1,308 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cloudnativepg-dashboard
+  namespace: grafana
+  labels:
+    grafana_dashboard: "1"
+data:
+  cloudnativepg-dashboard.json: |
+    {
+      "__inputs": [
+        {
+          "name": "DS_PROMETHEUS",
+          "label": "Prometheus",
+          "description": "",
+          "type": "datasource",
+          "pluginId": "prometheus",
+          "pluginName": "Prometheus"
+        },
+        {
+          "name": "DS_EXPRESSION",
+          "label": "Expression",
+          "description": "",
+          "type": "datasource",
+          "pluginId": "__expr__"
+        }
+      ],
+      "__elements": {},
+      "__requires": [
+        {
+          "type": "datasource",
+          "id": "__expr__",
+          "version": "1.0.0"
+        },
+        {
+          "type": "panel",
+          "id": "alertlist",
+          "name": "Alert list",
+          "version": ""
+        },
+        {
+          "type": "panel",
+          "id": "bargauge",
+          "name": "Bar gauge",
+          "version": ""
+        },
+        {
+          "type": "panel",
+          "id": "gauge",
+          "name": "Gauge",
+          "version": ""
+        },
+        {
+          "type": "grafana",
+          "id": "grafana",
+          "name": "Grafana",
+          "version": "10.3.3"
+        },
+        {
+          "type": "panel",
+          "id": "heatmap",
+          "name": "Heatmap",
+          "version": ""
+        },
+        {
+          "type": "datasource",
+          "id": "prometheus",
+          "name": "Prometheus",
+          "version": "1.0.0"
+        },
+        {
+          "type": "panel",
+          "id": "stat",
+          "name": "Stat",
+          "version": ""
+        },
+        {
+          "type": "panel",
+          "id": "table",
+          "name": "Table",
+          "version": ""
+        },
+        {
+          "type": "panel",
+          "id": "text",
+          "name": "Text",
+          "version": ""
+        },
+        {
+          "type": "panel",
+          "id": "timeseries",
+          "name": "Time series",
+          "version": ""
+        }
+      ],
+      "annotations": {
+        "list": [
+          {
+            "builtIn": 1,
+            "datasource": {
+              "type": "datasource",
+              "uid": "grafana"
+            },
+            "enable": true,
+            "hide": true,
+            "iconColor": "rgba(0, 211, 255, 1)",
+            "name": "Annotations & Alerts",
+            "target": {
+              "limit": 100,
+              "matchAny": false,
+              "tags": [],
+              "type": "dashboard"
+            },
+            "type": "dashboard"
+          }
+        ]
+      },
+      "editable": true,
+      "fiscalYearStartMonth": 0,
+      "graphTooltip": 1,
+      "id": null,
+      "links": [
+        {
+          "asDropdown": false,
+          "icon": "external link",
+          "includeVars": false,
+          "keepTime": false,
+          "tags": [
+            "cloudnativepg"
+          ],
+          "targetBlank": false,
+          "title": "Related Dashboards",
+          "tooltip": "",
+          "type": "dashboards",
+          "url": ""
+        }
+      ],
+      "liveNow": false,
+      "panels": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "gridPos": {
+            "h": 7,
+            "w": 3,
+            "x": 0,
+            "y": 0
+          },
+          "id": 676,
+          "options": {
+            "alertInstanceLabelFilter": "{namespace=~\"$namespace\",pod=~\"$instances\"}",
+            "alertName": "",
+            "dashboardAlerts": false,
+            "folder": "",
+            "groupBy": [],
+            "groupMode": "default",
+            "maxItems": 20,
+            "sortOrder": 1,
+            "stateFilter": {
+              "error": true,
+              "firing": true,
+              "noData": false,
+              "normal": true,
+              "pending": true
+            },
+            "viewMode": "list"
+          },
+          "title": "Alerts",
+          "type": "alertlist"
+        }
+      ],
+      "refresh": "30s",
+      "revision": 1,
+      "schemaVersion": 39,
+      "style": "dark",
+      "tags": [
+        "cloudnativepg"
+      ],
+      "templating": {
+        "list": [
+          {
+            "current": {
+              "selected": false,
+              "text": "Prometheus",
+              "value": "prometheus"
+            },
+            "hide": 0,
+            "includeAll": false,
+            "label": "Datasource",
+            "multi": false,
+            "name": "DS_PROMETHEUS",
+            "options": [],
+            "query": "prometheus",
+            "queryValue": "",
+            "refresh": 1,
+            "regex": "",
+            "skipUrlSync": false,
+            "type": "datasource"
+          },
+          {
+            "current": {},
+            "datasource": {
+              "type": "prometheus",
+              "uid": "${DS_PROMETHEUS}"
+            },
+            "definition": "label_values(cnpg_collector_up,namespace)",
+            "hide": 0,
+            "includeAll": false,
+            "label": "Database Namespace",
+            "multi": false,
+            "name": "namespace",
+            "options": [],
+            "query": {
+              "query": "cnpg_collector_up",
+              "refId": "StandardVariableQuery"
+            },
+            "refresh": 2,
+            "regex": "/namespace=\"(?<text>[^\"]+)/g",
+            "skipUrlSync": false,
+            "sort": 0,
+            "type": "query"
+          },
+          {
+            "current": {},
+            "datasource": {
+              "type": "prometheus",
+              "uid": "${DS_PROMETHEUS}"
+            },
+            "definition": "cnpg_collector_up{namespace=~\"$namespace\"}",
+            "description": "CNPG Cluster",
+            "hide": 0,
+            "includeAll": false,
+            "label": "Cluster",
+            "multi": false,
+            "name": "cluster",
+            "options": [],
+            "query": {
+              "query": "cnpg_collector_up{namespace=~\"$namespace\"}",
+              "refId": "StandardVariableQuery"
+            },
+            "refresh": 2,
+            "regex": "/cluster=\"(?<text>[^\"]+)/g",
+            "skipUrlSync": false,
+            "sort": 0,
+            "type": "query"
+          },
+          {
+            "current": {},
+            "datasource": {
+              "type": "prometheus",
+              "uid": "${DS_PROMETHEUS}"
+            },
+            "definition": "cnpg_collector_up{namespace=~\"$namespace\",cluster=~\"$cluster\"}",
+            "description": "CNPG Instance",
+            "hide": 0,
+            "includeAll": true,
+            "label": "Instance",
+            "multi": true,
+            "name": "instances",
+            "options": [],
+            "query": {
+              "query": "cnpg_collector_up{namespace=~\"$namespace\",cluster=~\"$cluster\"}",
+              "refId": "StandardVariableQuery"
+            },
+            "refresh": 2,
+            "regex": "/pod=\"(?<text>[^\"]+)/g",
+            "skipUrlSync": false,
+            "sort": 0,
+            "type": "query"
+          },
+          {
+            "current": {},
+            "datasource": {
+              "type": "prometheus",
+              "uid": "${DS_PROMETHEUS}"
+            },
+            "definition": "label_values(controller_runtime_webhook_requests_total{webhook=\"/mutate-postgresql-cnpg-io-v1-cluster\"},namespace)",
+            "hide": 0,
+            "includeAll": false,
+            "label": "Operator Namespace",
+            "multi": false,
+            "name": "operatorNamespace",
+            "options": [],
+            "query": {
+              "query": "label_values(controller_runtime_webhook_requests_total{webhook=\"/mutate-postgresql-cnpg-io-v1-cluster\"},namespace)",
+              "refId": "StandardVariableQuery"
+            },
+            "refresh": 2,
+            "regex": "",
+            "skipUrlSync": false,
+            "sort": 0,
+            "type": "query"
+          }
+        ]
+      },
+      "time": {
+        "from": "now-30m",
+        "to": "now"
+      },
+      "timepicker": {},
+      "timezone": "",
+      "title": "CloudNativePG",
+      "uid": "cloudnativepg-overview",
+      "version": 1,
+      "weekStart": ""
+    }

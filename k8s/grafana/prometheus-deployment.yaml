@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: prometheus
-  namespace: monitoring
+  namespace: grafana
   labels:
     app: prometheus
 spec:
@@ -15,12 +15,14 @@ spec:
       labels:
         app: prometheus
     spec:
+      serviceAccountName: prometheus
       containers:
         - name: prometheus
           image: prom/prometheus:v2.44.0
           args:
             - --config.file=/etc/prometheus/prometheus.yml
             - --storage.tsdb.path=/prometheus
+            - --web.enable-lifecycle
           ports:
             - containerPort: 9090
           volumeMounts:

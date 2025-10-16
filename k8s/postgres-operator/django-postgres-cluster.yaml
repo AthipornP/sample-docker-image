@@ -54,6 +54,10 @@ spec:
   minSyncReplicas: 1
   maxSyncReplicas: 2
   
+  # Monitoring configuration for Prometheus
+  monitoring:
+    enablePodMonitor: true
+  
   # Backup configuration (optional - can be configured later)
   # backup:
   #   target: primary
