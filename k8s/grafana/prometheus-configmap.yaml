@@ -13,18 +13,39 @@ data:
       - "/etc/prometheus/rules/*.yml"
     
     scrape_configs:
-      # CloudNativePG monitoring via direct pod discovery
-      - job_name: 'cloudnativepg-pods'
+      # CloudNativePG monitoring - Direct pod discovery with metrics endpoint
+      - job_name: 'cloudnativepg'
+        honor_labels: true
         kubernetes_sd_configs:
           - role: pod
+            namespaces:
+              names:
+                - customer-portal
+                - postgres-operator
         relabel_configs:
-          # Keep only CloudNativePG cluster pods with metrics port
+          # Keep only CloudNativePG instance pods
           - source_labels: [__meta_kubernetes_pod_label_cnpg_io_cluster]
             action: keep
             regex: .+
+          - source_labels: [__meta_kubernetes_pod_label_cnpg_io_podRole]
+            action: keep
+            regex: instance
+          # Only scrape pods with metrics port
           - source_labels: [__meta_kubernetes_pod_container_port_name]
             action: keep
             regex: metrics
+          # Set metrics path
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+            action: replace
+            target_label: __metrics_path__
+            regex: (.+)
+          # Default metrics path if not specified
+          - source_labels: [__meta_kubernetes_pod_container_port_name]
+            action: replace
+            target_label: __metrics_path__
+            regex: metrics
+            replacement: /metrics
+          # Extract labels
           - action: labelmap
             regex: __meta_kubernetes_pod_label_(.+)
           - source_labels: [__meta_kubernetes_namespace]
@@ -32,25 +53,29 @@ data:
             target_label: kubernetes_namespace
           - source_labels: [__meta_kubernetes_pod_name]
             action: replace
-            target_label: kubernetes_pod_name
+            target_label: pod
           - source_labels: [__meta_kubernetes_pod_label_cnpg_io_cluster]
             action: replace
-            target_label: cnpg_cluster
+            target_label: cluster
           - source_labels: [__meta_kubernetes_pod_label_cnpg_io_instanceRole]
             action: replace
-            target_label: cnpg_role
+            target_label: instance_role
       
-      # Kubernetes system monitoring  
-      - job_name: 'kubernetes-pods'
+      # PostgreSQL Exporter - Direct scrape
+      - job_name: 'postgres-exporter'
+        honor_labels: true
         kubernetes_sd_configs:
           - role: pod
+            namespaces:
+              names:
+                - grafana
         relabel_configs:
-          - source_labels: [__meta_kubernetes_namespace]
+          - source_labels: [__meta_kubernetes_pod_label_app]
             action: keep
-            regex: grafana|postgres-operator|kube-system
+            regex: postgres-exporter
           - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
             action: keep
-            regex: true
+            regex: "true"
           - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
             action: replace
             target_label: __metrics_path__
@@ -60,8 +85,16 @@ data:
             regex: ([^:]+)(?::\d+)?;(\d+)
             replacement: $1:$2
             target_label: __address__
+          - action: labelmap
+            regex: __meta_kubernetes_pod_label_(.+)
+          - source_labels: [__meta_kubernetes_namespace]
+            action: replace
+            target_label: kubernetes_namespace
+          - source_labels: [__meta_kubernetes_pod_name]
+            action: replace
+            target_label: pod
       
-      # Legacy postgres-exporter (fallback)
-      - job_name: 'postgres-exporter'
+      # Prometheus self-monitoring
+      - job_name: 'prometheus'
         static_configs:
-          - targets: ['postgres-exporter.grafana.svc.cluster.local:9187']
+          - targets: ['localhost:9090']

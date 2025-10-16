@@ -4,6 +4,7 @@ namespace: grafana
 resources:
   - grafana-secrets.yaml
   - grafana-provisioning.yaml
+  - grafana-dashboards-configmap.yaml
   - grafana-deployment.yaml
   - grafana-service.yaml
   - prometheus-configmap.yaml

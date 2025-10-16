@@ -35,7 +35,7 @@ spec:
                   name: postgres-exporter-credentials
                   key: datasource_password
             - name: DATA_SOURCE_NAME
-              value: "postgresql://$(DATASOURCE_USER):$(DATASOURCE_PASSWORD)@django-postgres-rw.postgres-operator.svc.cluster.local:5432/django?sslmode=disable"
+              value: "postgresql://$(DATASOURCE_USER):$(DATASOURCE_PASSWORD)@django-postgres-rw.customer-portal.svc.cluster.local:5432/django?sslmode=disable"
           ports:
             - containerPort: 9187
               name: metrics
