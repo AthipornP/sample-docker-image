@@ -6,6 +6,8 @@ kind: Cluster
 metadata:
   name: django-postgres-cluster
   namespace: customer-portal
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
 spec:
   instances: 3  # 1 primary + 2 replicas for HA
     
