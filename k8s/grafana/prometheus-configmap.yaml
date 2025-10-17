@@ -99,9 +99,6 @@ data:
           - source_labels: [__meta_kubernetes_service_name]
             action: keep
             regex: kube-state-metrics
-          - source_labels: [__meta_kubernetes_service_port_name]
-            action: keep
-            regex: http-metrics
           - source_labels: [__meta_kubernetes_namespace]
             action: replace
             target_label: namespace
