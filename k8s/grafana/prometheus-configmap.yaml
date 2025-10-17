@@ -92,6 +92,9 @@ data:
       - job_name: 'kube-state-metrics'
         kubernetes_sd_configs:
           - role: service
+            namespaces:
+              names:
+                - monitoring
         relabel_configs:
           - source_labels: [__meta_kubernetes_service_name]
             action: keep
@@ -105,6 +108,27 @@ data:
           - source_labels: [__meta_kubernetes_service_name]
             action: replace
             target_label: service
+      
+      # Prometheus Node Exporter (for node metrics)
+      - job_name: 'node-exporter'
+        kubernetes_sd_configs:
+          - role: endpoints
+            namespaces:
+              names:
+                - monitoring
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_service_name]
+            action: keep
+            regex: prometheus-node-exporter
+          - source_labels: [__meta_kubernetes_namespace]
+            action: replace
+            target_label: namespace
+          - source_labels: [__meta_kubernetes_pod_name]
+            action: replace
+            target_label: pod
+          - source_labels: [__meta_kubernetes_pod_node_name]
+            action: replace
+            target_label: node
       
       # Prometheus self-monitoring
       - job_name: 'prometheus'
