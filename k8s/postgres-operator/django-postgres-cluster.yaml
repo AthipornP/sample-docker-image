@@ -37,14 +37,15 @@ spec:
     size: 1Gi
     storageClass: rook-ceph-block
     
-  # Resources and limits
+  # Resources and limits for CloudNativePG pods
+  # These are important for Prometheus kube-state-metrics to track resource utilization
   resources:
     requests:
-      memory: "256Mi"
-      cpu: "100m"
+      memory: "512Mi"    # Increased from 256Mi for better performance
+      cpu: "250m"        # Increased from 100m
     limits:
-      memory: "1Gi"
-      cpu: "500m"
+      memory: "1Gi"      # Remains same
+      cpu: "500m"        # Remains same
       
   # Automatic failover and switchover
   failoverDelay: 0
