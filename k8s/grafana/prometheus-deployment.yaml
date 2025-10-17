@@ -28,7 +28,12 @@ spec:
           volumeMounts:
             - name: prometheus-config
               mountPath: /etc/prometheus
+            - name: recording-rules
+              mountPath: /etc/prometheus/recording-rules
       volumes:
         - name: prometheus-config
           configMap:
             name: prometheus-config
+        - name: recording-rules
+          configMap:
+            name: prometheus-recording-rules
