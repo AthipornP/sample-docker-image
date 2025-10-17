@@ -8,6 +8,7 @@ resources:
   - grafana-deployment.yaml
   - grafana-service.yaml
   - prometheus-configmap.yaml
+  - prometheus-recording-rules.yaml
   - prometheus-deployment.yaml
   - prometheus-service.yaml
   - prometheus-rbac.yaml
