@@ -3,6 +3,7 @@ kind: Kustomization
 namespace: grafana
 resources:
   - grafana-secrets.yaml
+  - grafana-smtp-secret.yaml
   - grafana-provisioning.yaml
   - grafana-dashboards-configmap.yaml
   - grafana-deployment.yaml

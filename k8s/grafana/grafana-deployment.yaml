@@ -33,6 +33,29 @@ spec:
               value: /etc/grafana/provisioning
             - name: GF_USERS_ALLOW_SIGN_UP
               value: "false"
+            # SMTP configuration for alerts
+            - name: GF_SMTP_ENABLED
+              value: "true"
+            - name: GF_SMTP_HOST
+              value: "smtp.gmail.com:587"
+            - name: GF_SMTP_USER
+              valueFrom:
+                secretKeyRef:
+                  name: grafana-smtp
+                  key: smtp-user
+            - name: GF_SMTP_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: grafana-smtp
+                  key: smtp-password
+            - name: GF_SMTP_FROM_ADDRESS
+              value: "athiporn1990@gmail.com"
+            - name: GF_SMTP_FROM_NAME
+              value: "Grafana Alert"
+            - name: GF_SMTP_SKIP_VERIFY
+              value: "true"
+            - name: GF_SMTP_STARTTLS_POLICY
+              value: "OpportunisticStartTLS"
           volumeMounts:
             - name: grafana-provisioning
               mountPath: /etc/grafana/provisioning
