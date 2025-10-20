@@ -4,10 +4,12 @@ namespace: grafana
 resources:
   - grafana-secrets.yaml
   - grafana-smtp-secret.yaml
+  - grafana-pvc.yaml
   - grafana-provisioning.yaml
   - grafana-dashboards-configmap.yaml
   - grafana-deployment.yaml
   - grafana-service.yaml
+  - prometheus-pvc.yaml
   - prometheus-configmap.yaml
   - prometheus-recording-rules.yaml
   - prometheus-deployment.yaml
