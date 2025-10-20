@@ -28,7 +28,6 @@ spec:
           ports:
             - containerPort: 3000
           securityContext:
-            fsGroup: 472
             runAsUser: 472
             runAsNonRoot: true
           env:
