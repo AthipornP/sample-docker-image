@@ -7,49 +7,227 @@ SigNoz เป็น open-source observability platform ที่ใช้สำ�
 - **Metrics** - Application และ infrastructure metrics
 - **Logs** - Centralized logging
 
-## ⚠️ สถานะปัจจุบัน
+## Components
 
-**Deployment แบบ Manual นี้ยังไม่สมบูรณ์** - ขาด OTEL Collector ซึ่งเป็น component สำคัญในการรับ telemetry data จาก applications
+1. **ClickHouse** - Time-series database สำหรับเก็บ telemetry data
+2. **Query Service** - API backend สำหรับ query ข้อมูล
+3. **Frontend** - Web UI สำหรับ visualization
+4. **OTEL Collector** - รับ telemetry data จาก applications
 
-### Components ที่มีอยู่:
-- ✅ **ClickHouse** - Database สำหรับเก็บข้อมูล
-- ✅ **Query Service** - Backend API
-- ✅ **Frontend** - Web UI (เข้าถึงได้ที่ NodePort 30301)
+## การ Deploy ด้วย Argo CD + Helm Chart
 
-### Components ที่ขาด:
-- ❌ **OTEL Collector** - รับ telemetry data จาก applications (ซับซ้อนเกินไป)
+Deployment นี้ใช้ **SigNoz Official Helm Chart** ผ่าน Argo CD
 
-## แนะนำ: ใช้ Helm Chart แทน
+### ติดตั้งด้วย Argo CD
 
-SigNoz มี official Helm chart ที่ configure ทุกอย่างอย่างถูกต้องแล้ว
+```bash
+# Apply Argo Application
+kubectl apply -f argocd-application.yaml
 
-### ติดตั้งด้วย Helm
+# ดูสถานะ
+kubectl get application signoz -n argocd
+kubectl get pods -n signoz
+
+# Sync (ถ้า auto-sync ไม่ทำงาน)
+argocd app sync signoz
+```
+
+### หรือติดตั้งด้วย Helm โดยตรง
 
 ```bash
 # เพิ่ม Helm repository
 helm repo add signoz https://charts.signoz.io
 helm repo update
 
-# ติดตั้ง SigNoz (self-hosted)
+# ติดตั้ง SigNoz
 helm install signoz signoz/signoz \
   --namespace signoz \
-  --create-namespace
+  --create-namespace \
+  -f argocd-application.yaml
 
-# ดูสถานะ
-kubectl get pods -n signoz
+# Upgrade
+helm upgrade signoz signoz/signoz \
+  --namespace signoz \
+  -f argocd-application.yaml
 ```
 
-### การเข้าถึง UI
+## การเข้าถึง SigNoz UI
+
+### ผ่าน NodePort (Default)
 
 ```bash
-# Port forward
-kubectl port-forward -n signoz svc/signoz-frontend 3301:3301
-
-# เปิด browser ไปที่
-http://localhost:3301
+# เข้าถึงผ่าน NodePort 30301
+http://<NODE_IP>:30301
 ```
 
-## Alternative: Deploy แบบ Manual (ไม่แนะนำ)
+### ผ่าน Port Forward
+
+```bash
+kubectl port-forward -n signoz svc/signoz-frontend 3301:3301
+# เข้าถึงที่ http://localhost:3301
+```
+
+## การส่ง Telemetry Data ไปยัง SigNoz
+
+### OTLP gRPC Endpoint
+```
+http://signoz-otel-collector.signoz.svc.cluster.local:4317
+```
+
+### OTLP HTTP Endpoint
+```
+http://signoz-otel-collector.signoz.svc.cluster.local:4318
+```
+
+### ตัวอย่างการ Config ใน Application
+
+**Python (OpenTelemetry)**
+```python
+from opentelemetry import trace
+from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
+
+trace.set_tracer_provider(TracerProvider())
+otlp_exporter = OTLPSpanExporter(
+    endpoint="http://signoz-otel-collector.signoz.svc.cluster.local:4317",
+    insecure=True
+)
+trace.get_tracer_provider().add_span_processor(
+    BatchSpanProcessor(otlp_exporter)
+)
+```
+
+**Node.js (OpenTelemetry)**
+```javascript
+const { NodeTracerProvider } = require('@opentelemetry/sdk-trace-node');
+const { OTLPTraceExporter } = require('@opentelemetry/exporter-trace-otlp-grpc');
+
+const provider = new NodeTracerProvider();
+const exporter = new OTLPTraceExporter({
+  url: 'http://signoz-otel-collector.signoz.svc.cluster.local:4317'
+});
+provider.addSpanProcessor(new BatchSpanProcessor(exporter));
+provider.register();
+```
+
+## การตรวจสอบสถานะ
+
+```bash
+# ดู pods ทั้งหมด
+kubectl get pods -n signoz
+
+# ดู services
+kubectl get svc -n signoz
+
+# ดู Argo CD Application
+kubectl get application signoz -n argocd -o yaml
+
+# ดู logs
+kubectl logs -n signoz -l app.kubernetes.io/component=otel-collector -f
+kubectl logs -n signoz -l app.kubernetes.io/component=query-service -f
+```
+
+## Configuration
+
+### Helm Values
+
+Configuration อยู่ใน `argocd-application.yaml` ภายใต้ `spec.source.helm.values`
+
+#### ปรับ Resource Limits
+
+```yaml
+queryService:
+  resources:
+    limits:
+      memory: "2Gi"
+      cpu: "1000m"
+```
+
+#### เปลี่ยน Storage Size
+
+```yaml
+clickhouse:
+  persistence:
+    size: 50Gi
+```
+
+#### เปลี่ยน Service Type
+
+```yaml
+frontend:
+  service:
+    type: LoadBalancer  # หรือ ClusterIP
+```
+
+## Troubleshooting
+
+### Pod ไม่ start
+```bash
+kubectl describe pod -n signoz <pod-name>
+kubectl logs -n signoz <pod-name>
+```
+
+### ClickHouse ไม่สามารถ mount volume ได้
+```bash
+# ตรวจสอบ PVC
+kubectl get pvc -n signoz
+kubectl describe pvc -n signoz
+
+# ตรวจสอบ StorageClass
+kubectl get storageclass
+```
+
+### OTEL Collector ไม่รับ data
+```bash
+# ตรวจสอบ service endpoint
+kubectl get ep -n signoz
+
+# ทดสอบ connectivity
+kubectl run -it --rm debug --image=busybox --restart=Never -- \
+  wget -O- http://signoz-otel-collector.signoz.svc.cluster.local:4318/v1/traces
+```
+
+### Argo CD Sync ล้มเหลว
+```bash
+# ดู sync status
+argocd app get signoz
+
+# Sync แบบบังคับ
+argocd app sync signoz --force
+
+# ดู Argo logs
+kubectl logs -n argocd -l app.kubernetes.io/name=argocd-application-controller
+```
+
+## การลบ Deployment
+
+```bash
+# ลบด้วย Argo CD
+kubectl delete application signoz -n argocd
+
+# หรือลบ namespace ทั้งหมด
+kubectl delete namespace signoz
+```
+
+## หมายเหตุ
+
+- SigNoz Frontend เปิดให้เข้าถึงผ่าน NodePort 30301
+- ClickHouse ใช้ Rook-Ceph สำหรับ persistent storage
+- Helm Chart จาก SigNoz official repository: https://charts.signoz.io
+- Documentation: https://signoz.io/docs/install/kubernetes/
+- Chart Version: 0.54.2 (ตรวจสอบ version ล่าสุดได้ที่ https://github.com/SigNoz/charts)
+
+## Manual Deployment Files (เก่า - ไม่ใช้แล้ว)
+
+ไฟล์เหล่านี้เก็บไว้เป็น reference เท่านั้น:
+- `namespace.yaml`
+- `clickhouse-deployment.yaml`
+- `deployment.yaml`
+- `service.yaml`
+- `kustomization.yaml`
+
+**ใช้ `argocd-application.yaml` แทน**
 
 ### 1. สร้าง Application ใน Argo CD UI
 

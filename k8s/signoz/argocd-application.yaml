@@ -1,0 +1,82 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: signoz
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://charts.signoz.io
+    chart: signoz
+    targetRevision: 0.54.2  # ใช้ version ล่าสุด
+    helm:
+      values: |
+        # SigNoz Helm Chart Values
+        
+        # Frontend Configuration
+        frontend:
+          service:
+            type: NodePort
+            nodePort: 30301
+        
+        # ClickHouse Configuration
+        clickhouse:
+          enabled: true
+          persistence:
+            enabled: true
+            storageClass: "rook-ceph-block"
+            size: 20Gi
+          resources:
+            requests:
+              memory: "1Gi"
+              cpu: "500m"
+            limits:
+              memory: "2Gi"
+              cpu: "1000m"
+        
+        # Query Service Configuration
+        queryService:
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "200m"
+            limits:
+              memory: "1Gi"
+              cpu: "500m"
+        
+        # OTEL Collector Configuration
+        otelCollector:
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "200m"
+            limits:
+              memory: "1Gi"
+              cpu: "500m"
+        
+        # OTEL Collector Metrics
+        otelCollectorMetrics:
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "200m"
+            limits:
+              memory: "1Gi"
+              cpu: "500m"
+  
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: signoz
+  
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
