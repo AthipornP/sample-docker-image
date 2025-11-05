@@ -18,28 +18,24 @@ data:
     
     processors:
       batch:
-        timeout: 1s
-        send_batch_size: 1024
+        send_batch_size: 10000
+        timeout: 10s
       
     exporters:
-      clickhousetraces:
-        endpoint: tcp://clickhouse:9000?database=signoz_traces
-      clickhousemetricswrite:
-        endpoint: tcp://clickhouse:9000?database=signoz_metrics
-      clickhouselogsexporter:
-        endpoint: tcp://clickhouse:9000?database=signoz_logs
+      logging:
+        loglevel: debug
         
     service:
       pipelines:
         traces:
           receivers: [otlp]
           processors: [batch]
-          exporters: [clickhousetraces]
+          exporters: [logging]
         metrics:
           receivers: [otlp]
           processors: [batch]
-          exporters: [clickhousemetricswrite]
+          exporters: [logging]
         logs:
           receivers: [otlp]
           processors: [batch]
-          exporters: [clickhouselogsexporter]
+          exporters: [logging]
