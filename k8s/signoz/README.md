@@ -7,14 +7,49 @@ SigNoz เป็น open-source observability platform ที่ใช้สำ�
 - **Metrics** - Application และ infrastructure metrics
 - **Logs** - Centralized logging
 
-## Components
+## ⚠️ สถานะปัจจุบัน
 
-1. **ClickHouse** - Time-series database สำหรับเก็บ telemetry data
-2. **Query Service** - API backend สำหรับ query ข้อมูล
-3. **Frontend** - Web UI สำหรับ visualization
-4. **OTEL Collector** - รับ telemetry data จาก applications
+**Deployment แบบ Manual นี้ยังไม่สมบูรณ์** - ขาด OTEL Collector ซึ่งเป็น component สำคัญในการรับ telemetry data จาก applications
 
-## การ Deploy ด้วย Argo CD
+### Components ที่มีอยู่:
+- ✅ **ClickHouse** - Database สำหรับเก็บข้อมูล
+- ✅ **Query Service** - Backend API
+- ✅ **Frontend** - Web UI (เข้าถึงได้ที่ NodePort 30301)
+
+### Components ที่ขาด:
+- ❌ **OTEL Collector** - รับ telemetry data จาก applications (ซับซ้อนเกินไป)
+
+## แนะนำ: ใช้ Helm Chart แทน
+
+SigNoz มี official Helm chart ที่ configure ทุกอย่างอย่างถูกต้องแล้ว
+
+### ติดตั้งด้วย Helm
+
+```bash
+# เพิ่ม Helm repository
+helm repo add signoz https://charts.signoz.io
+helm repo update
+
+# ติดตั้ง SigNoz (self-hosted)
+helm install signoz signoz/signoz \
+  --namespace signoz \
+  --create-namespace
+
+# ดูสถานะ
+kubectl get pods -n signoz
+```
+
+### การเข้าถึง UI
+
+```bash
+# Port forward
+kubectl port-forward -n signoz svc/signoz-frontend 3301:3301
+
+# เปิด browser ไปที่
+http://localhost:3301
+```
+
+## Alternative: Deploy แบบ Manual (ไม่แนะนำ)
 
 ### 1. สร้าง Application ใน Argo CD UI
 
