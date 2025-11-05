@@ -31,6 +31,11 @@ spec:
           value: "netdns=go"
         - name: TELEMETRY_ENABLED
           value: "true"
+        - name: ClickHouseUrl
+          value: "tcp://clickhouse:9000"
+        volumeMounts:
+        - name: signoz-data
+          mountPath: /var/lib/signoz
         resources:
           requests:
             memory: "256Mi"
@@ -38,6 +43,9 @@ spec:
           limits:
             memory: "512Mi"
             cpu: "500m"
+      volumes:
+      - name: signoz-data
+        emptyDir: {}
 ---
 apiVersion: apps/v1
 kind: Deployment
