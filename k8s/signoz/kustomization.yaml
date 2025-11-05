@@ -5,7 +5,6 @@ namespace: signoz
 
 resources:
   - namespace.yaml
-  - config.yaml
   - clickhouse-deployment.yaml
   - deployment.yaml
   - service.yaml
