@@ -115,6 +115,14 @@ spec:
         env:
         - name: OTEL_RESOURCE_ATTRIBUTES
           value: "host.name=signoz-host,os.type=linux"
+        - name: ClickHouseUrl
+          value: "tcp://clickhouse:9000"
+        - name: SIGNOZ_COMPONENT
+          value: "otel-collector"
+        volumeMounts:
+        - name: otel-collector-config
+          mountPath: /etc/otel-collector-config.yaml
+          subPath: otel-collector-config.yaml
         resources:
           requests:
             memory: "256Mi"
@@ -122,3 +130,7 @@ spec:
           limits:
             memory: "512Mi"
             cpu: "500m"
+      volumes:
+      - name: otel-collector-config
+        configMap:
+          name: signoz-config

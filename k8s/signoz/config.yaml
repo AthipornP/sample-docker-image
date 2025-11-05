@@ -6,17 +6,6 @@ metadata:
   labels:
     app: signoz
 data:
-  # Query Service Configuration
-  query-service.yaml: |
-    server:
-      httpPort: 8080
-    storage:
-      type: clickhouse
-      clickhouse:
-        host: clickhouse
-        port: 9000
-        database: signoz
-        
   # OTEL Collector Configuration
   otel-collector-config.yaml: |
     receivers:
@@ -33,20 +22,24 @@ data:
         send_batch_size: 1024
       
     exporters:
-      clickhouse:
-        endpoint: tcp://clickhouse:9000?database=signoz
+      clickhousetraces:
+        datasource: tcp://clickhouse:9000/?database=signoz_traces
+      clickhousemetricswrite:
+        datasource: tcp://clickhouse:9000/?database=signoz_metrics
+      clickhouselogsexporter:
+        datasource: tcp://clickhouse:9000/?database=signoz_logs
         
     service:
       pipelines:
         traces:
           receivers: [otlp]
           processors: [batch]
-          exporters: [clickhouse]
+          exporters: [clickhousetraces]
         metrics:
           receivers: [otlp]
           processors: [batch]
-          exporters: [clickhouse]
+          exporters: [clickhousemetricswrite]
         logs:
           receivers: [otlp]
           processors: [batch]
-          exporters: [clickhouse]
+          exporters: [clickhouselogsexporter]
