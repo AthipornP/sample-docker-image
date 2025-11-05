@@ -13,6 +13,10 @@ spec:
       values: |
         # SigNoz Helm Chart Values
         
+        # Global Configuration
+        global:
+          storageClass: "rook-ceph-block"
+        
         # Frontend Configuration
         frontend:
           service:
@@ -24,7 +28,6 @@ spec:
           enabled: true
           persistence:
             enabled: true
-            storageClass: "rook-ceph-block"
             size: 20Gi
           resources:
             requests:
@@ -36,10 +39,8 @@ spec:
         
         # ZooKeeper Configuration (required by ClickHouse)
         zookeeper:
-          persistence:
-            enabled: true
-            storageClass: "rook-ceph-block"
-            size: 10Gi
+          image:
+            tag: "3.8.4-debian-12-r6"
           resources:
             requests:
               memory: "256Mi"
