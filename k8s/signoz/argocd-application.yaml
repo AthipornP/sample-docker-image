@@ -34,6 +34,20 @@ spec:
               memory: "2Gi"
               cpu: "1000m"
         
+        # ZooKeeper Configuration (required by ClickHouse)
+        zookeeper:
+          persistence:
+            enabled: true
+            storageClass: "rook-ceph-block"
+            size: 10Gi
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "250m"
+        
         # Query Service Configuration
         queryService:
           resources:
