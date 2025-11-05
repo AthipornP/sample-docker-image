@@ -126,7 +126,3 @@ spec:
           limits:
             memory: "512Mi"
             cpu: "500m"
-      volumes:
-      - name: otel-collector-config
-        configMap:
-          name: signoz-config
