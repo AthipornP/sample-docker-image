@@ -1,0 +1,116 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: signoz-query-service
+  namespace: signoz
+  labels:
+    app: signoz
+    component: query-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: signoz
+      component: query-service
+  template:
+    metadata:
+      labels:
+        app: signoz
+        component: query-service
+    spec:
+      containers:
+      - name: query-service
+        image: signoz/query-service:latest
+        ports:
+        - containerPort: 8080
+          name: http
+        env:
+        - name: STORAGE
+          value: "clickhouse"
+        - name: GODEBUG
+          value: "netdns=go"
+        - name: TELEMETRY_ENABLED
+          value: "true"
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: signoz-frontend
+  namespace: signoz
+  labels:
+    app: signoz
+    component: frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: signoz
+      component: frontend
+  template:
+    metadata:
+      labels:
+        app: signoz
+        component: frontend
+    spec:
+      containers:
+      - name: frontend
+        image: signoz/frontend:latest
+        ports:
+        - containerPort: 3301
+          name: http
+        env:
+        - name: FRONTEND_API_ENDPOINT
+          value: "http://signoz-query-service:8080"
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "50m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: signoz-otel-collector
+  namespace: signoz
+  labels:
+    app: signoz
+    component: otel-collector
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: signoz
+      component: otel-collector
+  template:
+    metadata:
+      labels:
+        app: signoz
+        component: otel-collector
+    spec:
+      containers:
+      - name: otel-collector
+        image: signoz/signoz-otel-collector:latest
+        ports:
+        - containerPort: 4317
+          name: otlp-grpc
+        - containerPort: 4318
+          name: otlp-http
+        env:
+        - name: OTEL_RESOURCE_ATTRIBUTES
+          value: "host.name=signoz-host,os.type=linux"
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"

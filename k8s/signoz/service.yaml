@@ -1,0 +1,61 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: signoz-query-service
+  namespace: signoz
+  labels:
+    app: signoz
+    component: query-service
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8080
+    targetPort: 8080
+    protocol: TCP
+    name: http
+  selector:
+    app: signoz
+    component: query-service
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: signoz-frontend
+  namespace: signoz
+  labels:
+    app: signoz
+    component: frontend
+spec:
+  type: NodePort
+  ports:
+  - port: 3301
+    targetPort: 3301
+    protocol: TCP
+    name: http
+    nodePort: 30301
+  selector:
+    app: signoz
+    component: frontend
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: signoz-otel-collector
+  namespace: signoz
+  labels:
+    app: signoz
+    component: otel-collector
+spec:
+  type: ClusterIP
+  ports:
+  - port: 4317
+    targetPort: 4317
+    protocol: TCP
+    name: otlp-grpc
+  - port: 4318
+    targetPort: 4318
+    protocol: TCP
+    name: otlp-http
+  selector:
+    app: signoz
+    component: otel-collector

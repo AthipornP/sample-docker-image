@@ -1,0 +1,52 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: signoz-config
+  namespace: signoz
+  labels:
+    app: signoz
+data:
+  # Query Service Configuration
+  query-service.yaml: |
+    server:
+      httpPort: 8080
+    storage:
+      type: clickhouse
+      clickhouse:
+        host: clickhouse
+        port: 9000
+        database: signoz
+        
+  # OTEL Collector Configuration
+  otel-collector-config.yaml: |
+    receivers:
+      otlp:
+        protocols:
+          grpc:
+            endpoint: 0.0.0.0:4317
+          http:
+            endpoint: 0.0.0.0:4318
+    
+    processors:
+      batch:
+        timeout: 1s
+        send_batch_size: 1024
+      
+    exporters:
+      clickhouse:
+        endpoint: tcp://clickhouse:9000?database=signoz
+        
+    service:
+      pipelines:
+        traces:
+          receivers: [otlp]
+          processors: [batch]
+          exporters: [clickhouse]
+        metrics:
+          receivers: [otlp]
+          processors: [batch]
+          exporters: [clickhouse]
+        logs:
+          receivers: [otlp]
+          processors: [batch]
+          exporters: [clickhouse]
