@@ -107,10 +107,6 @@ spec:
       containers:
       - name: otel-collector
         image: signoz/signoz-otel-collector:latest
-        command:
-        - "/signoz-otel-collector"
-        args:
-        - "--config=/etc/otel-collector-config.yaml"
         ports:
         - containerPort: 4317
           name: otlp-grpc
@@ -119,14 +115,10 @@ spec:
         env:
         - name: OTEL_RESOURCE_ATTRIBUTES
           value: "host.name=signoz-host,os.type=linux"
-        - name: ClickHouseUrl
-          value: "tcp://clickhouse:9000"
-        - name: SIGNOZ_COMPONENT
-          value: "otel-collector"
-        volumeMounts:
-        - name: otel-collector-config
-          mountPath: /etc/otel-collector-config.yaml
-          subPath: otel-collector-config.yaml
+        - name: CLICKHOUSE_HOST
+          value: "clickhouse"
+        - name: CLICKHOUSE_PORT
+          value: "9000"
         resources:
           requests:
             memory: "256Mi"
