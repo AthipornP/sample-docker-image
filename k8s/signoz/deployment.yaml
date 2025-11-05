@@ -115,10 +115,12 @@ spec:
         env:
         - name: OTEL_RESOURCE_ATTRIBUTES
           value: "host.name=signoz-host,os.type=linux"
-        - name: CLICKHOUSE_HOST
+        - name: SIGNOZ_COMPONENT
+          value: "otel-collector"
+        - name: STORAGE
           value: "clickhouse"
-        - name: CLICKHOUSE_PORT
-          value: "9000"
+        - name: ClickHouseUrl
+          value: "tcp://clickhouse.signoz.svc.cluster.local:9000"
         resources:
           requests:
             memory: "256Mi"
