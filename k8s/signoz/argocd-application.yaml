@@ -8,7 +8,7 @@ spec:
   source:
     repoURL: https://charts.signoz.io
     chart: signoz
-    targetRevision: 0.54.2  # ใช้ version ล่าสุด
+    targetRevision: 0.99.0  # ใช้ version ล่าสุด
     helm:
       values: |
         # SigNoz Helm Chart Values
@@ -17,13 +17,18 @@ spec:
         global:
           storageClass: "rook-ceph-block"
         
-        # Frontend Configuration
-        frontend:
+        # SigNoz Query Service UI
+        signoz:
           service:
             type: NodePort
             nodePort: 30301
-        
-        # ClickHouse Configuration
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "200m"
+            limits:
+              memory: "1Gi"
+              cpu: "500m"
         clickhouse:
           enabled: true
           persistence:
@@ -36,28 +41,6 @@ spec:
             limits:
               memory: "2Gi"
               cpu: "1000m"
-        
-        # ZooKeeper Configuration (required by ClickHouse)
-        zookeeper:
-          image:
-            tag: "3.8.4-debian-12-r6"
-          resources:
-            requests:
-              memory: "256Mi"
-              cpu: "100m"
-            limits:
-              memory: "512Mi"
-              cpu: "250m"
-        
-        # Query Service Configuration
-        queryService:
-          resources:
-            requests:
-              memory: "512Mi"
-              cpu: "200m"
-            limits:
-              memory: "1Gi"
-              cpu: "500m"
         
         # OTEL Collector Configuration
         otelCollector:
