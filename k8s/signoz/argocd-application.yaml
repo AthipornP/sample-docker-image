@@ -51,6 +51,27 @@ spec:
               nodePort: 30317
             otlp-http:
               nodePort: 30318
+          config:
+            receivers:
+              otlp:
+                protocols:
+                  http:
+                    endpoint: 0.0.0.0:4318
+                    cors:
+                      allowed_origins:
+                        - "http://localhost:*"
+                        - "http://10.191.10.50:*"
+                        - "http://10.191.10.51:*"
+                        - "http://10.191.10.60:*"
+                        - "http://10.191.10.61:*"
+                        - "https://localhost:*"
+                        - "https://10.191.10.50:*"
+                        - "https://10.191.10.51:*"
+                        - "https://10.191.10.60:*"
+                        - "https://10.191.10.61:*"
+                      allowed_headers:
+                        - "*"
+                      max_age: 7200
           resources:
             requests:
               memory: "512Mi"
