@@ -44,6 +44,13 @@ spec:
         
         # OTEL Collector Configuration
         otelCollector:
+          service:
+            type: NodePort
+          ports:
+            otlp:
+              nodePort: 30317
+            otlp-http:
+              nodePort: 30318
           resources:
             requests:
               memory: "512Mi"
