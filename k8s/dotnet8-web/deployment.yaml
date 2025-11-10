@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: dotnet8-web
-          image: docker.io/beamblackdragon/dotnet8
+          image: docker.io/beamblackdragon/dotnet8:f9c653c
           ports:
             - containerPort: 80
           envFrom:
