@@ -7,15 +7,116 @@ metadata:
     app: nginx-proxy
 data:
   default.conf: |
+    upstream svelte_portal {
+      server svelte-portal.customer-portal.svc.cluster.local:3000;
+    }
+
+    upstream django_web {
+      server django-web.customer-portal.svc.cluster.local:8000;
+    }
+
+    upstream php_web {
+      server php-web.customer-portal.svc.cluster.local:80;
+    }
+
+    upstream dotnet_web {
+      server dotnet8-web.customer-portal.svc.cluster.local:80;
+    }
+
+    map $http_upgrade $connection_upgrade {
+      default upgrade;
+      '' close;
+    }
+
     server {
       listen 80;
       server_name _;
 
+      # Default portal
       location / {
-        proxy_pass http://svelte-portal.customer-portal.svc.cluster.local:3000;
+        proxy_pass http://svelte_portal;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Host $host;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection $connection_upgrade;
+      }
+
+      # Django web app under /django
+      location = /django {
+        return 302 /django/;
+      }
+
+      location /django/ {
+        proxy_pass http://django_web/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Host $host;
+        proxy_set_header X-Forwarded-Prefix /django;
+        proxy_redirect ^/(.*)$ /django/$1;
+        proxy_cookie_path / /django/;
+        sub_filter_once off;
+        sub_filter_types text/html application/javascript text/css;
+        sub_filter 'href="/' 'href="/django/';
+        sub_filter "href='/" "href='/django/";
+        sub_filter 'src="/' 'src="/django/';
+        sub_filter "src='/" "src='/django/";
+        sub_filter 'action="/' 'action="/django/';
+        sub_filter "action='/" "action='/django/";
+      }
+
+      # PHP web app under /php
+      location = /php {
+        return 302 /php/;
+      }
+
+      location /php/ {
+        proxy_pass http://php_web/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Host $host;
+        proxy_set_header X-Forwarded-Prefix /php;
+        proxy_redirect ^/(.*)$ /php/$1;
+        proxy_cookie_path / /php/;
+        sub_filter_once off;
+        sub_filter_types text/html application/javascript text/css;
+        sub_filter 'href="/' 'href="/php/';
+        sub_filter "href='/" "href='/php/";
+        sub_filter 'src="/' 'src="/php/';
+        sub_filter "src='/" "src='/php/";
+        sub_filter 'action="/' 'action="/php/';
+        sub_filter "action='/" "action='/php/";
+      }
+
+      # .NET 8 web app under /dotnet
+      location = /dotnet {
+        return 302 /dotnet/;
+      }
+
+      location /dotnet/ {
+        proxy_pass http://dotnet_web/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Host $host;
+        proxy_set_header X-Forwarded-Prefix /dotnet;
+        proxy_redirect ^/(.*)$ /dotnet/$1;
+        proxy_cookie_path / /dotnet/;
+        sub_filter_once off;
+        sub_filter_types text/html application/javascript text/css;
+        sub_filter 'href="/' 'href="/dotnet/';
+        sub_filter "href='/" "href='/dotnet/";
+        sub_filter 'src="/' 'src="/dotnet/';
+        sub_filter "src='/" "src='/dotnet/";
+        sub_filter 'action="/' 'action="/dotnet/';
+        sub_filter "action='/" "action='/dotnet/";
       }
     }

@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dotnet8-web-config
+  namespace: customer-portal
+data:
+  ASPNETCORE_URLS: "http://+:80"
+  ASPNETCORE_FORWARDEDHEADERS_ENABLED: "true"
+  PORTAL_HOST: "<NODE_IP>"
+  PORTAL_PORT: "32003"
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: dotnet8-web-secret
+  namespace: customer-portal
+type: Opaque
+stringData:
+  OAUTH_CLIENT_ID: "sample-dotnet"
+  OAUTH_CLIENT_SECRET: "changeme-dotnet-secret"
+  OAUTH_ISSUER: "https://s02.iampm.online/realms/master"
+  OAUTH_REDIRECT_URI: "http://<NODE_IP>:32003/dotnet/signin-oidc"

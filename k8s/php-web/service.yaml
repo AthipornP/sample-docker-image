@@ -6,11 +6,10 @@ metadata:
   labels:
     app: php-web
 spec:
-  type: NodePort
+  type: ClusterIP
   selector:
     app: php-web
   ports:
     - name: http
       port: 80
       targetPort: 80
-      nodePort: 30002

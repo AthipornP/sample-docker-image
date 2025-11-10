@@ -5,11 +5,11 @@ metadata:
   namespace: customer-portal
 data:
   NODE_ENV: "production"
-  APP_DJANGO_URL: "http://django.customer-portal.svc.cluster.local:8000"
-  APP_DOTNET_URL: "http://dotnet.customer-portal.svc.cluster.local:5000"
-  APP_PHP_URL: "http://php.customer-portal.svc.cluster.local:8080"
-  API_PHP_URL: "http://php.customer-portal.svc.cluster.local:8082/api/weather/london"
-  API_DJANGO_URL: "http://django.customer-portal.svc.cluster.local:8000/api/weather/bangkok"
+  APP_DJANGO_URL: "/django"
+  APP_DOTNET_URL: "/dotnet"
+  APP_PHP_URL: "/php"
+  API_PHP_URL: "/php/api/weather/london"
+  API_DJANGO_URL: "/django/api/weather/bangkok"
 
 ---
 apiVersion: v1
@@ -22,4 +22,4 @@ stringData:
   OAUTH_CLIENT_ID: "sample-customer-portal"
   OAUTH_CLIENT_SECRET: "yuIlwOx415U4SVab2yqB8eiA9Lqn7TPc"
   OAUTH_ISSUER: "https://s02.iampm.online/realms/master"
-  OAUTH_REDIRECT_URI: "http://<NODE_IP>:30000/auth/callback"
+  OAUTH_REDIRECT_URI: "http://<NODE_IP>:32003/auth/callback"

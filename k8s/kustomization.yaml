@@ -11,6 +11,8 @@ resources:
   - svelte-portal
   - django-web
   - php-web
+  - dotnet8-web
+  - nginx-proxy
   - django-api
   - php-api
   - dotnet8-api

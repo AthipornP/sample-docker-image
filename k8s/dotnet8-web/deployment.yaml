@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dotnet8-web
+  namespace: customer-portal
+  labels:
+    app: dotnet8-web
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dotnet8-web
+  template:
+    metadata:
+      labels:
+        app: dotnet8-web
+    spec:
+      containers:
+        - name: dotnet8-web
+          image: docker.io/beamblackdragon/dotnet8-web:f9c653c
+          ports:
+            - containerPort: 80
+          envFrom:
+            - configMapRef:
+                name: dotnet8-web-config
+            - secretRef:
+                name: dotnet8-web-secret
+          resources:
+            limits:
+              cpu: "400m"
+              memory: "512Mi"
