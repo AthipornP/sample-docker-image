@@ -58,7 +58,7 @@ data:
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_set_header X-Forwarded-Host $host;
         proxy_set_header X-Forwarded-Prefix /django;
-        proxy_redirect ^/(.*)$ /django/$1;
+        proxy_redirect ~^/(.*)$ /django/$1;
         proxy_cookie_path / /django/;
         sub_filter_once off;
         sub_filter_types text/html application/javascript text/css;
@@ -83,7 +83,7 @@ data:
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_set_header X-Forwarded-Host $host;
         proxy_set_header X-Forwarded-Prefix /php;
-        proxy_redirect ^/(.*)$ /php/$1;
+        proxy_redirect ~^/(.*)$ /php/$1;
         proxy_cookie_path / /php/;
         sub_filter_once off;
         sub_filter_types text/html application/javascript text/css;
@@ -108,7 +108,7 @@ data:
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_set_header X-Forwarded-Host $host;
         proxy_set_header X-Forwarded-Prefix /dotnet;
-        proxy_redirect ^/(.*)$ /dotnet/$1;
+        proxy_redirect ~^/(.*)$ /dotnet/$1;
         proxy_cookie_path / /dotnet/;
         sub_filter_once off;
         sub_filter_types text/html application/javascript text/css;
