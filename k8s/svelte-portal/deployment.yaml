@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: svelte-portal
-          image: docker.io/beamblackdragon/svelte-portal:f9c653c
+          image: docker.io/beamblackdragon/svelte-portal:latest
           ports:
             - containerPort: 3000
           envFrom:
