@@ -5,6 +5,7 @@ metadata:
   namespace: customer-portal
 data:
   NODE_ENV: "production"
+  PROXY_BASE_URL: "http://<NODE_IP>:32003"
   APP_DJANGO_URL: "/django"
   APP_DOTNET_URL: "/dotnet"
   APP_PHP_URL: "/php"
