@@ -83,12 +83,25 @@ function resolveProxyBase(req) {
   if (configuredProxyBase) {
     return configuredProxyBase;
   }
-  const proto = (req && (req.get('x-forwarded-proto') || req.protocol)) || '';
-  const host = (req && (req.get('x-forwarded-host') || req.get('host'))) || '';
+  const proto = (req && (req.get('x-forwarded-proto') || req.protocol)) || 'http';
+  const forwardedPort = req && req.get('x-forwarded-port');
+  const forwardedHost = req && req.get('x-forwarded-host');
+  const host = forwardedHost || (req && (req.get('host'))) || '';
+  
   if (!host) return '';
-  const scheme = proto || (host.includes('://') ? '' : 'http');
-  const normalizedHost = host.replace(/\/$/, '');
-  return `${scheme ? `${scheme.replace(/:$/, '')}://` : ''}${normalizedHost}`;
+  
+  // ถ้า forwardedHost มี port แล้ว ไม่ต้องเพิ่มอีก
+  if (forwardedHost && forwardedHost.includes(':')) {
+    return `${proto}://${forwardedHost}`;
+  }
+  
+  // ถ้ามี forwardedPort ให้เพิ่ม
+  if (forwardedPort) {
+    return `${proto}://${host}:${forwardedPort}`;
+  }
+  
+  // default case
+  return `${proto}://${host}`;
 }
 
 function attachProxyBase(url, req) {

@@ -6,11 +6,11 @@ metadata:
 data:
   NODE_ENV: "production"
   PROXY_BASE_URL: "http://<NODE_IP>:32003"
-  APP_DJANGO_URL: "/django"
-  APP_DOTNET_URL: "/dotnet"
-  APP_PHP_URL: "/php"
-  API_PHP_URL: "/php/api/weather/london"
-  API_DJANGO_URL: "/django/api/weather/bangkok"
+  APP_DJANGO_URL: "http://<NODE_IP>:32003/django"
+  APP_DOTNET_URL: "http://<NODE_IP>:32003/dotnet"
+  APP_PHP_URL: "http://<NODE_IP>:32003/php"
+  API_PHP_URL: "http://<NODE_IP>:32003/php/api/weather/london"
+  API_DJANGO_URL: "http://<NODE_IP>:32003/django/api/weather/bangkok"
 
 ---
 apiVersion: v1
