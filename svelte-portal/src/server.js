@@ -64,7 +64,7 @@ function decodeJwt(token) {
 }
 
 const INTERNAL_DNS_REGEX = /\.svc(?:\.cluster\.local)?/i;
-const proxyBaseUrl = (process.env.PROXY_BASE_URL || process.env.GATEWAY_BASE_URL || '').replace(/\/$/, '');
+const configuredProxyBase = (process.env.PROXY_BASE_URL || process.env.GATEWAY_BASE_URL || '').replace(/\/$/, '');
 
 function normalizeExternalUrl(rawValue, fallbackPath) {
   if (!rawValue || typeof rawValue !== 'string') return fallbackPath;
@@ -79,22 +79,35 @@ function normalizeExternalUrl(rawValue, fallbackPath) {
   return fallbackPath;
 }
 
-function attachProxyBase(url) {
+function resolveProxyBase(req) {
+  if (configuredProxyBase) {
+    return configuredProxyBase;
+  }
+  const proto = (req && (req.get('x-forwarded-proto') || req.protocol)) || '';
+  const host = (req && (req.get('x-forwarded-host') || req.get('host'))) || '';
+  if (!host) return '';
+  const scheme = proto || (host.includes('://') ? '' : 'http');
+  const normalizedHost = host.replace(/\/$/, '');
+  return `${scheme ? `${scheme.replace(/:$/, '')}://` : ''}${normalizedHost}`;
+}
+
+function attachProxyBase(url, req) {
   if (!url) return url;
   if (/^(?:[a-z][a-z0-9+\-.]*:)?\/\//i.test(url)) {
     return url;
   }
-  if (!proxyBaseUrl) {
+  const base = resolveProxyBase(req);
+  if (!base) {
     return url;
   }
   if (url.startsWith('/')) {
-    return `${proxyBaseUrl}${url}`;
+    return `${base}${url}`;
   }
   return url;
 }
 
-function buildPublicUrl(value, fallbackPath) {
-  return attachProxyBase(normalizeExternalUrl(value, fallbackPath));
+function buildPublicUrl(value, fallbackPath, req) {
+  return attachProxyBase(normalizeExternalUrl(value, fallbackPath), req);
 }
 import dotenv from 'dotenv';
 import sirv from 'sirv';
@@ -583,14 +596,14 @@ app.get('/api/apps', (req, res) => {
   ].map(app => ({
     id: app.id,
     name: app.name,
-    url: buildPublicUrl(app.env, app.fallback)
+    url: buildPublicUrl(app.env, app.fallback, req)
   }));
 
   const djangoApiFallback = '/django/api/weather/bangkok';
   const dotnetApiFallback = '/dotnet/api/weather/tokyo';
   const phpApiFallback = '/php/api/weather/london';
 
-  const phpApiUrl = buildPublicUrl(process.env.API_PHP_URL, phpApiFallback);
+  const phpApiUrl = buildPublicUrl(process.env.API_PHP_URL, phpApiFallback, req);
   const phpBaseUrl = phpApiUrl.replace(/\/api\/weather\/london$/i, '').replace(/\/$/, '');
 
   const api = [
@@ -598,14 +611,14 @@ app.get('/api/apps', (req, res) => {
       id: 'django',
       name: 'Django API',
       method: 'GET',
-      url: buildPublicUrl(process.env.API_DJANGO_URL, djangoApiFallback),
+      url: buildPublicUrl(process.env.API_DJANGO_URL, djangoApiFallback, req),
       description: 'Django REST Framework weather endpoint (Bangkok)'
     },
     {
       id: 'dotnet',
       name: '.NET 8 API',
       method: 'GET',
-      url: buildPublicUrl(process.env.API_DOTNET_URL || process.env.APP_DOTNET_API_URL, dotnetApiFallback),
+      url: buildPublicUrl(process.env.API_DOTNET_URL || process.env.APP_DOTNET_API_URL, dotnetApiFallback, req),
       description: 'ASP.NET Core weather endpoint (Tokyo)'
     },
     {
