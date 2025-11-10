@@ -304,6 +304,7 @@ async function checkUserStatus() {
 
 	function openApp(url) {
 		// navigate in the same tab to the app
+		console.log('Opening app with URL:', url);
 		window.location.href = url;
 	}
 
