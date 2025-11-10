@@ -62,6 +62,21 @@ function decodeJwt(token) {
     return null;
   }
 }
+
+const INTERNAL_DNS_REGEX = /\.svc(?:\.cluster\.local)?/i;
+
+function normalizeExternalUrl(rawValue, fallbackPath) {
+  if (!rawValue || typeof rawValue !== 'string') return fallbackPath;
+  const trimmed = rawValue.trim();
+  if (!trimmed) return fallbackPath;
+  if (INTERNAL_DNS_REGEX.test(trimmed)) {
+    return fallbackPath;
+  }
+  if (trimmed.startsWith('/') || /^https?:\/\//i.test(trimmed)) {
+    return trimmed;
+  }
+  return fallbackPath;
+}
 import dotenv from 'dotenv';
 import sirv from 'sirv';
 import path from 'path';
@@ -543,26 +558,35 @@ app.get('/api/user', (req, res) => {
 // API endpoint to return configured app URLs
 app.get('/api/apps', (req, res) => {
   const apps = [
-    { id: 'django', name: 'Django App', url: process.env.APP_DJANGO_URL || 'http://localhost:8000' },
-    { id: 'dotnet', name: '.NET 8', url: process.env.APP_DOTNET_URL || 'http://localhost:5000' },
-    { id: 'php', name: 'PHP', url: process.env.APP_PHP_URL || 'http://localhost:8080' },
-  ];
-  // expose API URLs configured in .env so the frontend can call them without user input
-  const phpApiUrl = process.env.API_PHP_URL || 'http://localhost:8082/api/weather/london';
+    { id: 'django', name: 'Django App', fallback: '/django', env: process.env.APP_DJANGO_URL },
+    { id: 'dotnet', name: '.NET 8', fallback: '/dotnet', env: process.env.APP_DOTNET_URL },
+    { id: 'php', name: 'PHP', fallback: '/php', env: process.env.APP_PHP_URL },
+  ].map(app => ({
+    id: app.id,
+    name: app.name,
+    url: normalizeExternalUrl(app.env, app.fallback)
+  }));
+
+  const djangoApiFallback = '/django/api/weather/bangkok';
+  const dotnetApiFallback = '/dotnet/api/weather/tokyo';
+  const phpApiFallback = '/php/api/weather/london';
+
+  const phpApiUrl = normalizeExternalUrl(process.env.API_PHP_URL, phpApiFallback);
   const phpBaseUrl = phpApiUrl.replace(/\/api\/weather\/london$/i, '').replace(/\/$/, '');
+
   const api = [
     {
       id: 'django',
       name: 'Django API',
       method: 'GET',
-      url: process.env.API_DJANGO_URL || ((process.env.APP_DJANGO_URL || 'http://localhost:8000').replace(/\/$/, '') + '/api/weather/bangkok'),
+      url: normalizeExternalUrl(process.env.API_DJANGO_URL, djangoApiFallback),
       description: 'Django REST Framework weather endpoint (Bangkok)'
     },
     {
       id: 'dotnet',
       name: '.NET 8 API',
       method: 'GET',
-      url: process.env.API_DOTNET_URL || ((process.env.APP_DOTNET_API_URL || 'http://localhost:5100').replace(/\/$/, '') + '/api/weather/tokyo'),
+      url: normalizeExternalUrl(process.env.API_DOTNET_URL || process.env.APP_DOTNET_API_URL, dotnetApiFallback),
       description: 'ASP.NET Core weather endpoint (Tokyo)'
     },
     {
