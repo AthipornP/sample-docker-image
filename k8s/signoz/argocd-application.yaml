@@ -72,6 +72,7 @@ spec:
                         - "https://10.191.10.61:*"
                         - "https://10.191.10.161:*"
                         - "http://10.159.0.18"
+                        - "https://*.trycloudflare.com"
                       allowed_headers:
                         - "*"
                       max_age: 7200
