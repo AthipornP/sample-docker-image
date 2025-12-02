@@ -59,20 +59,7 @@ spec:
                     endpoint: 0.0.0.0:4318
                     cors:
                       allowed_origins:
-                        - "http://localhost:*"
-                        - "http://10.191.10.50:*"
-                        - "http://10.191.10.51:*"
-                        - "http://10.191.10.60:*"
-                        - "http://10.191.10.61:*"
-                        - "http://10.191.10.161:*"
-                        - "https://localhost:*"
-                        - "https://10.191.10.50:*"
-                        - "https://10.191.10.51:*"
-                        - "https://10.191.10.60:*"
-                        - "https://10.191.10.61:*"
-                        - "https://10.191.10.161:*"
-                        - "http://10.159.0.18"
-                        - "https://*.trycloudflare.com"
+                        - "*"
                       allowed_headers:
                         - "*"
                       max_age: 7200
